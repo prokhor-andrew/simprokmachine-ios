@@ -84,24 +84,6 @@ final class EmittingMachine: ChildMachine {
 }
 ```
 
-Standard implementations of ```ChildMachine``` are ```BasicMachine``` and ```WeakMachine```.
-
-```Swift
-... = BasicMachine<Int, Void> { (input: Int?, callback: @escaping Handler<Void>) in
-    // handle input here
-    // emit output if needed
-}
-```
-
-and
-
-```Swift
-... = WeakMachine<Int, Void>(self) { weaklyReferencedSelf, input, callback in 
-    // handle input here
-    // emit output if needed
-}
-```
-
 
 To separate machines into classes instead of cluttering them up in the root - use ```ParentMachine``` protocol.
 
@@ -156,18 +138,6 @@ let machine2: Machine<Input, Output> = ...
 )
 ```
 
-To dynamically create and connect machines when new input received - use ```ConnectableMachine```.
-
-```Swift
-... = ConnectableMachine<Int, Void>(
-    BasicConnection<Int, Void>(MyMachine1(), MyMachine2())
-) { (state: BasicConnection<Int, Void>, input: Int) -> ConnectionType<BasicConnection<Int, Void>> in
-    // Return 
-    // ConnectionType.reduce(BasicConnection<Int, Void>) - when new machines have to be connected.
-    // ConnectionType.inward - when existing machines have to receive input: Int
-    ...
-}
-```
 
 Check out the [sample](https://github.com/simprok-dev/simprokmachine-ios/tree/main/sample) and the [wiki](https://github.com/simprok-dev/simprokmachine-ios/wiki) for more information about API and how to use it.
 
@@ -188,7 +158,7 @@ Once you have your Swift package set up, adding ```simprokmachine``` as a depend
 
 ```
 dependencies: [
-    .package(url: "https://github.com/simprok-dev/simprokmachine-ios.git", .upToNextMajor(from: "1.1.1"))
+    .package(url: "https://github.com/simprok-dev/simprokmachine-ios.git", .upToNextMajor(from: "1.1.2"))
 ]
 ```
 

@@ -5,7 +5,6 @@ import PackageDescription
 
 let package = Package(
     name: "simprokmachine",
-    platforms: [ .iOS(.v11) ],
     products: [
         .library(
             name: "simprokmachine",
