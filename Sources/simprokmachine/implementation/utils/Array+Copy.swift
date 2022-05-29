@@ -17,15 +17,6 @@ internal extension Array {
     }
 }
 
-internal extension Dictionary {
-    
-    func copyAdd(key: Key, element: Value) -> Dictionary<Key, Value> {
-        var copied = self
-        copied[key] = element
-        return copied
-    }
-}
-
 internal extension Array where Element: AnyObject {
     
     func removeDuplicates() -> Array<Element> {
