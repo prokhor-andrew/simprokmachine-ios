@@ -13,29 +13,25 @@ final class Domain: ParentMachine {
     typealias Output = AppEvent
     
     var child: Machine<AppEvent, AppEvent> {
-        func calculator(_ initial: Int) -> Machine<DomainInput, DomainOutput> {
-            Calculator(initial: initial).outward {
-                .set(.fromCalculator($0))
-            }.inward {
+        let reader: Machine<DomainInput, DomainOutput> = StorageReader()
+            .outward { .set(.fromReader($0)) }
+            .inward { _ in .set() }
+        
+        let calculator: Machine<DomainInput, DomainOutput> = Calculator()
+            .outward { .set(.fromCalculator($0)) }
+            .inward {
                 switch $0 {
                 case .fromParent:
-                    return .set(Void())
-                case .fromReader:
-                    return .set()
+                    return .set(.incremenet)
+                case .fromReader(let val):
+                    return .set(.initialize(val))
                 }
             }
-        }
         
-        let reader: Machine<DomainInput, DomainOutput> = StorageReader().outward { .set(.fromReader($0)) }.inward { _ in .set() }
-        
-        let connectable: Machine<DomainInput, DomainOutput> = ConnectableMachine(BasicConnection(reader)) { state, input in
-            switch input {
-            case .fromReader(let val):
-                return .reduce(BasicConnection(calculator(val)))
-            case .fromParent:
-                return .inward
-            }
-        }.redirect { output in
+        let connectable: Machine<DomainInput, DomainOutput> = Machine.merge(
+            reader,
+            calculator
+        ).redirect { output in
             switch output {
             case .fromReader(let val):
                 return .back(.fromReader(val))

@@ -47,7 +47,7 @@ When we reopen the app we want to see the same number. So the state must be save
     - Input: Int
     - Output: Void
 - ```Calculator``` - incrementing the number.
-    - Input: Void
+    - Input: CalculatorInput
     - Output: Int
 
 
@@ -81,13 +81,20 @@ They are used as intermediate layers.
 
 ## Step 3 - Code data types
 
-We only need ```AppEvent``` as the rest is supported by Swift.
+We only need ```AppEvent``` and ```CalculatorInput``` as the rest is supported by Swift.
 
 ```Swift
 enum AppEvent {
     case willChangeState
     case didChangeState(Int)
 }
+```
+
+```Swift
+enum CalculatorInput {
+    case initialize(Int)
+    case incremenet
+} 
 ```
 
 ## Step 4 - Code Logger
@@ -141,7 +148,6 @@ extension UIWindow: ParentMachine {
         }
     }
 }
-
 ```
 
 [ParentMachine](https://github.com/simprok-dev/simprokmachine-ios/wiki/ParentMachine) - is an intermediate layer for your data flow. It passes input from the parent to the child and vice versa for the output.
@@ -155,7 +161,6 @@ Code ```Display``` class to connect ```Logger``` and ```UIWindow``` together.
 final class Display: ParentMachine {
     typealias Input = AppEvent
     typealias Output = AppEvent
-    
     
     var child: Machine<AppEvent, AppEvent> {
         let window = UIApplication.shared.delegate!.window!!
@@ -217,22 +222,27 @@ final class StorageWriter<Output>: ChildMachine {
 
 ```Swift
 final class Calculator: ChildMachine {
-    typealias Input = Void
+    typealias Input = CalculatorInput
     typealias Output = Int
     
-    private var state: Int
-    
-    init(initial: Int) {
-        state = initial
-    }
+    private var state: Int?
     
     var queue: MachineQueue { .main }
     
-    func process(input: Input?, callback: @escaping Handler<Output>) {
-        if input != nil {
-            state += 1
+    func process(input: CalculatorInput?, callback: @escaping Handler<Output>) {
+        if let input = input {
+            switch input {
+            case .incremenet:
+                if let unwrapped = state {
+                    state = unwrapped + 1
+                }
+            case .initialize(let value):
+                state = value
+            }
+            if let state = state {
+                callback(state)
+            }
         }
-        callback(state)
     }
 }
 ```
@@ -248,29 +258,25 @@ final class Domain: ParentMachine {
     typealias Output = AppEvent
     
     var child: Machine<AppEvent, AppEvent> {
-        func calculator(_ initial: Int) -> Machine<DomainInput, DomainOutput> {
-            Calculator(initial: initial).outward {
-                .set(.fromCalculator($0))
-            }.inward {
+        let reader: Machine<DomainInput, DomainOutput> = StorageReader()
+            .outward { .set(.fromReader($0)) }
+            .inward { _ in .set() }
+        
+        let calculator: Machine<DomainInput, DomainOutput> = Calculator()
+            .outward { .set(.fromCalculator($0)) }
+            .inward {
                 switch $0 {
                 case .fromParent:
-                    return .set(Void())
-                case .fromReader:
-                    return .set()
+                    return .set(.incremenet)
+                case .fromReader(let val):
+                    return .set(.initialize(val))
                 }
             }
-        }
         
-        let reader: Machine<DomainInput, DomainOutput> = StorageReader().outward { .set(.fromReader($0)) }.inward { _ in .set() }
-        
-        let connectable: Machine<DomainInput, DomainOutput> = ConnectableMachine(BasicConnection(reader)) { state, input in
-            switch input {
-            case .fromReader(let val):
-                return .reduce(BasicConnection(calculator(val)))
-            case .fromParent:
-                return .inward
-            }
-        }.redirect { output in
+        let connectable: Machine<DomainInput, DomainOutput> = Machine.merge(
+            reader,
+            calculator
+        ).redirect { output in
             switch output {
             case .fromReader(let val):
                 return .back(.fromReader(val))
@@ -315,7 +321,6 @@ enum DomainOutput {
 ```
 
 [redirect()](https://github.com/simprok-dev/simprokmachine-ios/wiki/MachineType#redirect-operator) - depending on the output either passes it further to the root or sends an array of input data back to the child.
-[ConnectableMachine](https://github.com/simprok-dev/simprokmachine-ios/wiki/ConnectableMachine) - dynamically creates and connects a set of machines.
 
 
 ## Step 10 - Update Display
@@ -422,7 +427,6 @@ Run the app and see how things are working.
 - ```outward()``` is an operator to map the child's output type into the parent's output type or ignore it.
 - ```redirect()``` is an operator to either pass the output further to the root or map it into an array of inputs and send back to the child.
 - ```merge()``` is an operator to merge two or more machines of the same input and output types.
-- ```ConnectableMachine``` is a machine that is used to dynamically create and connect other machines.
 
 
 Refer to [wiki](https://github.com/simprok-dev/simprokmachine-ios/wiki) for more information.

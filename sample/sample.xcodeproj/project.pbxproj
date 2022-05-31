@@ -22,6 +22,7 @@
 		0767282527C128F300352314 /* Domain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0767282427C128F300352314 /* Domain.swift */; };
 		0767282927C1290D00352314 /* Calculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0767282827C1290D00352314 /* Calculator.swift */; };
 		0767282B27C1291B00352314 /* StorageReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0767282A27C1291B00352314 /* StorageReader.swift */; };
+		07BCCA332845EB5B00D6640E /* CalculatorInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07BCCA322845EB5B00D6640E /* CalculatorInput.swift */; };
 		07C9468227C8F46600B73598 /* simprokmachine in Frameworks */ = {isa = PBXBuildFile; productRef = 07C9468127C8F46600B73598 /* simprokmachine */; };
 /* End PBXBuildFile section */
 
@@ -43,6 +44,7 @@
 		0767282427C128F300352314 /* Domain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Domain.swift; sourceTree = "<group>"; };
 		0767282827C1290D00352314 /* Calculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Calculator.swift; sourceTree = "<group>"; };
 		0767282A27C1291B00352314 /* StorageReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageReader.swift; sourceTree = "<group>"; };
+		07BCCA322845EB5B00D6640E /* CalculatorInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorInput.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -148,6 +150,7 @@
 			isa = PBXGroup;
 			children = (
 				0767282827C1290D00352314 /* Calculator.swift */,
+				07BCCA322845EB5B00D6640E /* CalculatorInput.swift */,
 			);
 			path = calculator;
 			sourceTree = "<group>";
@@ -244,6 +247,7 @@
 				0711EA9427F700230089EBE7 /* DomainOutput.swift in Sources */,
 				0767281B27C128A700352314 /* StorageWriter.swift in Sources */,
 				0767281227C1286700352314 /* AppEvent.swift in Sources */,
+				07BCCA332845EB5B00D6640E /* CalculatorInput.swift in Sources */,
 				0767281627C1287E00352314 /* Display.swift in Sources */,
 				0767281027C1283B00352314 /* Constants.swift in Sources */,
 				0711EA9627F7089F0089EBE7 /* DomainInput.swift in Sources */,
@@ -467,7 +471,7 @@
 			repositoryURL = "https://github.com/simprok-dev/simprokmachine-ios.git";
 			requirement = {
 				kind = exactVersion;
-				version = 1.1.1;
+				version = 1.1.2;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
