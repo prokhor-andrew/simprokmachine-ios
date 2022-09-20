@@ -21,21 +21,27 @@ public extension RootMachine {
     
     /// Subscribes `child` machine specified in `RootMachine` and its sub-machines.
     /// - parameter callback - receives machine's output. Not recommended to be used. Exists for edge-cases. Prefer using child machine that receives input and handles it.
-    func start(callback: @escaping Handler<Output> = { _ in }) -> Subscription {
+    func start(callback: @escaping Handler<Output> = { _ in }) -> Subscription<Input> {
         Subscription(child.subscribe(queued: true, callback: callback))
     }
 }
 
 
 public extension RootMachine where Self: NSObject {
-    
+
     /// Triggers `RootMachine start()` method and saves its `Subscription`.
     func start(callback: @escaping Handler<Output> = { _ in }) {
-        bag.save(start(callback: callback))
+        let subscription: Subscription<Input> = start(callback: callback)
+        
+        bag.save(subscription)
     }
-    
+
     /// Removes saved `Subscription`.
     func stop() {
         bag.clear()
+    }
+    
+    func send(input: Input) {
+        bag.send(input: input)
     }
 }
