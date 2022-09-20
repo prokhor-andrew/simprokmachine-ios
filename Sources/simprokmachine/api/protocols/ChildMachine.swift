@@ -23,11 +23,7 @@ public protocol ChildMachine: MachineType {
 public extension ChildMachine {
     
     var `internal`: InternalMachine<Input, Output> {
-        .init(.init(
-            self,
-            inMapper: { .set($0) },
-            outMapper: { .setOut($0) }
-        ) { machine, callback in
+        .init(.init(self) { machine, callback in
             [ChildSubscription(machine, callback)]
         })
     }

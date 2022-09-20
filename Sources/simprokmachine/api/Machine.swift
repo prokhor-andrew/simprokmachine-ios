@@ -32,10 +32,8 @@ public final class Machine<Input, Output> {
     
     internal convenience init<M: MachineType>(
         _ machineType: M,
-        inMapper: @escaping Mapper<Input, Ward<M.Input>>,
-        outMapper: @escaping Mapper<M.Output, Outward<M.Input, Output>>,
         subscribeFunc: @escaping (M, @escaping Handler<M.Output>) -> [BaseSubscription<M.Input>]
-    ) {
+    ) where M.Output == Output, M.Input == Input {
         self.init(machineType: machineType) { [weak machineType] machine, queued, callback in
             guard let machineType = machineType else { return EmptySubscription() }
             return ParentSubscription(
@@ -45,17 +43,9 @@ public final class Machine<Input, Output> {
                     guard let machineType = machineType else { return [] }
                     
                     return subscribeFunc(machineType) { output in
-                        switch outMapper(output) {
-                        case .skip:
-                            break // do nothing
-                        case .setIn(let inputs):
-                            inputs.forEach { setter($0) }
-                        case .setOut(let mappedOutputs):
-                            mappedOutputs.forEach { callback($0) }
-                        }
+                        callback(output)
                     }
-                },
-                mapper: inMapper
+                }
             )
         }
     }

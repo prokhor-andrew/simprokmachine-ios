@@ -8,35 +8,30 @@
 import Foundation
 
 
-internal final class ParentSubscription<ParentInput, ChildInput>: BaseSubscription<ParentInput> {
+internal final class ParentSubscription<Input>: BaseSubscription<Input> {
    
     private let queue: DispatchQueue?
-    private let mapper: Mapper<ParentInput, Ward<ChildInput>>
     
-    private var composite: [BaseSubscription<ChildInput>] = []
+    private var composite: [BaseSubscription<Input>] = []
     
     internal init<Output>(
-        _ machine: Machine<ParentInput, Output>,
+        _ machine: Machine<Input, Output>,
         queued: Bool,
         function: (
-            @escaping Handler<ChildInput>
-        ) -> [BaseSubscription<ChildInput>],
-        mapper: @escaping Mapper<ParentInput, Ward<ChildInput>>
+            @escaping Handler<Input>
+        ) -> [BaseSubscription<Input>]
     ) {
         self.queue = queued ? DispatchQueue(Self.self, tag: "input") : nil
-        self.mapper = mapper
         super.init(machine: machine)
         self.composite = function { [weak self] input in
             self?.composite.forEach { $0.set(input: input) }
         }
     }
     
-    internal override func set(input: ParentInput) {
+    internal override func set(input: Input) {
         let code = { [weak self] in
             guard let self = self else { return }
-            self.mapper(input).values.forEach { val in
-                self.composite.forEach { $0.set(input: val) }
-            }
+            self.composite.forEach { $0.set(input: input) }
         }
         
         if let queue = queue {

@@ -18,11 +18,7 @@ public protocol ParentMachine: MachineType {
 public extension ParentMachine {
     
     var `internal`: InternalMachine<Input, Output> {
-        .init(.init(
-            self,
-            inMapper: { .set($0) },
-            outMapper: { .setOut($0) }
-        ) { machine, callback in
+        .init(.init(self) { machine, callback in
             [machine.child.subscribe(queued: false, callback: callback)]
         })
     }
