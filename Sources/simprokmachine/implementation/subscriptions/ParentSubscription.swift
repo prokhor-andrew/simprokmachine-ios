@@ -12,26 +12,24 @@ internal final class ParentSubscription<Input>: BaseSubscription<Input> {
    
     private let queue: DispatchQueue?
     
-    private var composite: [BaseSubscription<Input>] = []
+    private var sub: BaseSubscription<Input>?
     
     internal init<Output>(
         _ machine: Machine<Input, Output>,
         queued: Bool,
-        function: (
-            @escaping Handler<Input>
-        ) -> [BaseSubscription<Input>]
+        function: (@escaping Handler<Input>) -> BaseSubscription<Input>?
     ) {
         self.queue = queued ? DispatchQueue(Self.self, tag: "input") : nil
         super.init(machine: machine)
-        self.composite = function { [weak self] input in
-            self?.composite.forEach { $0.set(input: input) }
+        self.sub = function { [weak self] input in
+            self?.sub?.set(input: input)
         }
     }
     
     internal override func set(input: Input) {
         let code = { [weak self] in
             guard let self = self else { return }
-            self.composite.forEach { $0.set(input: input) }
+            self.sub?.set(input: input)
         }
         
         if let queue = queue {

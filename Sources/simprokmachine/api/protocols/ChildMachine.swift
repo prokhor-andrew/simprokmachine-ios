@@ -24,7 +24,7 @@ public extension ChildMachine {
     
     var `internal`: InternalMachine<Input, Output> {
         .init(.init(self) { machine, callback in
-            [ChildSubscription(machine, callback)]
+            ChildSubscription(machine, callback)
         })
     }
 }

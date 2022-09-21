@@ -19,7 +19,7 @@ public extension ParentMachine {
     
     var `internal`: InternalMachine<Input, Output> {
         .init(.init(self) { machine, callback in
-            [machine.child.subscribe(queued: false, callback: callback)]
+            machine.child.subscribe(queued: false, callback: callback)
         })
     }
 }

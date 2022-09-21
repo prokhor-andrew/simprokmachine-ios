@@ -32,7 +32,7 @@ public final class Machine<Input, Output> {
     
     internal convenience init<M: MachineType>(
         _ machineType: M,
-        subscribeFunc: @escaping (M, @escaping Handler<M.Output>) -> [BaseSubscription<M.Input>]
+        subscribeFunc: @escaping (M, @escaping Handler<M.Output>) -> BaseSubscription<M.Input>
     ) where M.Output == Output, M.Input == Input {
         self.init(machineType: machineType) { [weak machineType] machine, queued, callback in
             guard let machineType = machineType else { return EmptySubscription() }
@@ -40,7 +40,7 @@ public final class Machine<Input, Output> {
                 machine,
                 queued: queued,
                 function: { [weak machineType] setter in
-                    guard let machineType = machineType else { return [] }
+                    guard let machineType = machineType else { return nil }
                     
                     return subscribeFunc(machineType) { output in
                         callback(output)
