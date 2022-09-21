@@ -22,10 +22,11 @@ public extension RootMachine {
     /// Subscribes `child` machine specified in `RootMachine` and its sub-machines.
     /// - parameter callback - receives machine's output. Not recommended to be used. Exists for edge-cases. Prefer using child machine that receives input and handles it.
     func start(callback: @escaping BiHandler<Output, Handler<Input>> = { _,_ in }) -> Subscription<Input> {
-        weak var base: BaseSubscription<Input>? = nil
+        var base: BaseSubscription<Input>? = nil
+        
         base = child.subscribe(queued: true) { [weak base] output in
-            if let base = base {
-                callback(output, base.set(input:))
+            callback(output) { [weak base] input in
+                base?.set(input: input)
             }
         }
         
