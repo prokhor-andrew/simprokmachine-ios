@@ -26,7 +26,7 @@ internal final class Merge2Machine<Input, Output>: ChildMachine {
         if let input = input {
             subscriptions.forEach { $0.send(input: input) }
         } else {
-            subscriptions = machines.map { ManualRoot(child: $0).start { output, setter in callback(output) } }
+            subscriptions = machines.map { ManualRoot(child: $0).start(callback: callback) }
         }
     }
     

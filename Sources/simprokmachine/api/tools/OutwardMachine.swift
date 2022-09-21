@@ -25,7 +25,7 @@ internal final class OutwardMachine<ParentOutput, ChildOutput, Input> : ChildMac
         if let input = input {
             subscription?.send(input: input)
         } else {
-            subscription = ManualRoot(child: machine).start { [weak self] output, setter in
+            subscription = ManualRoot(child: machine).start { [weak self] output in
                 self?.mapper(output).values.forEach(callback)
             }
         }
