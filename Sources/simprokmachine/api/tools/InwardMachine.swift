@@ -28,7 +28,7 @@ internal final class InwardMachine<ParentInput, ChildInput, Output> : ChildMachi
                 subscription?.send(input: $0)
             }
         } else {
-            subscription = ManualRoot(child: machine).start(callback: callback)
+            subscription = ManualRoot(child: machine).start { output, setter in callback(output) }
         }
     }
     

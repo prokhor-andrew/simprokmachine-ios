@@ -27,7 +27,7 @@ internal final class RedirectMachine<Input, Output> : ChildMachine {
         if let input = input {
             subscription?.send(input: input)
         } else {
-            subscription = ManualRoot(child: machine).start { [weak self] output in
+            subscription = ManualRoot(child: machine).start { [weak self] output, setter in
                 switch self?.mapper(output) {
                 case .prop:
                     callback(output)
