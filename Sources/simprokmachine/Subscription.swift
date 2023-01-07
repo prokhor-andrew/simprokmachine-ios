@@ -10,7 +10,6 @@ import Foundation
 /// Keep the instance of this object in order to keep the flow running
 public class Subscription<Input, Output> {
     
-    private let machine: AnyObject
     private let onProcess: BiHandler<Input?, Handler<Output>>
     private let onClearUp: Action
     private let processQueue: DispatchQueue
@@ -23,7 +22,6 @@ public class Subscription<Input, Output> {
         machine: M,
         callback: @escaping BiHandler<Output, Handler<Input>>
     ) where M.Input == Input, M.Output == Output {
-        self.machine = machine
         self.onProcess = machine.onProcess(input:callback:)
         self.onClearUp = machine.onClearUp
         self.processQueue = machine.isProcessOnMain ? DispatchQueue.main : DispatchQueue(Self.self, tag: "process")
@@ -31,11 +29,18 @@ public class Subscription<Input, Output> {
         self.outputQueue = DispatchQueue(Self.self, tag: "output")
         self.callback = callback
         
+        // we check if this machine is already subscribed to
+        assert(!subscribedToMachines.contains(where: {
+            machine === $0.value
+        }))
+        
+        subscribedToMachines[ObjectIdentifier(self)] = machine
 
         _send(input: nil)
     }
     
     deinit {
+        subscribedToMachines.removeValue(forKey: ObjectIdentifier(self))
         onClearUp()
     }
     
@@ -63,3 +68,5 @@ fileprivate extension DispatchQueue {
         self.init(label: String(describing: T.self) + "/" + tag, qos: .userInteractive)
     }
 }
+
+fileprivate var subscribedToMachines: [ObjectIdentifier: AnyObject] = [:]
