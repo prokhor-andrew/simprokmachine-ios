@@ -8,7 +8,7 @@
 import Foundation
 
 /// Keep the instance of this object in order to keep the flow running
-public class Subscription<Input, Output> {
+public final class Subscription<Input, Output> {
     
     private let machine: AnyObject
     private let onProcess: BiHandler<Input?, Handler<Output>>
