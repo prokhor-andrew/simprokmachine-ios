@@ -2,33 +2,26 @@
 //  Automaton.swift
 //  simprokmachine
 //
-//  Created by Andrey Prokhorenko on 01.12.2021.
+//  Created by Andrey Prokhorenko on 28.11.2021.
 //  Copyright (c) 2022 simprok. All rights reserved.
 
 
 
-public final class Automaton<Input, Output>: Machine {
+public protocol Automaton: AnyObject {
+    associatedtype Input
+    associatedtype Output
     
-    public let isProcessOnMain: Bool
+    var isProcessOnMain: Bool { get }
     
-    private let _onProcess: BiHandler<Input?, Handler<Output>>
-    private let _onClearUp: Action
+    func onProcess(input: Input?, callback: @escaping Handler<Output>)
     
-    public init(
-        isProcessOnMain: Bool,
-        onProcess: @escaping BiHandler<Input?, Handler<Output>>,
-        onClearUp: @escaping Action
-    ) {
-        self.isProcessOnMain = isProcessOnMain
-        self._onProcess = onProcess
-        self._onClearUp = onClearUp
-    }
+    func onClearUp()
+}
+
+public extension Automaton {
     
-    public func onProcess(input: Input?, callback: @escaping simprokmachine.Handler<Output>) {
-        _onProcess(input, callback)
-    }
-    
-    public func onClearUp() {
-        _onClearUp()
+    func subscribe(_ function: @escaping BiHandler<Output, Handler<Input>>) -> Subscription<Input, Output> {
+        Subscription(machine: self, callback: function)
     }
 }
+

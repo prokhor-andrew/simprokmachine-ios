@@ -19,7 +19,7 @@ public final class Subscription<Input, Output> {
     private let outputQueue: DispatchQueue
     
     
-    internal init<M: Machine>(
+    internal init<M: Automaton>(
         machine: M,
         callback: @escaping BiHandler<Output, Handler<Input>>
     ) where M.Input == Input, M.Output == Output {

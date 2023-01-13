@@ -2,26 +2,33 @@
 //  Machine.swift
 //  simprokmachine
 //
-//  Created by Andrey Prokhorenko on 28.11.2021.
+//  Created by Andrey Prokhorenko on 01.12.2021.
 //  Copyright (c) 2022 simprok. All rights reserved.
 
 
 
-public protocol Machine: AnyObject {
-    associatedtype Input
-    associatedtype Output
+public final class Machine<Input, Output>: Automaton {
     
-    var isProcessOnMain: Bool { get }
+    public let isProcessOnMain: Bool
     
-    func onProcess(input: Input?, callback: @escaping Handler<Output>)
+    private let _onProcess: BiHandler<Input?, Handler<Output>>
+    private let _onClearUp: Action
     
-    func onClearUp()
-}
-
-public extension Machine {
+    public init(
+        isProcessOnMain: Bool,
+        onProcess: @escaping BiHandler<Input?, Handler<Output>>,
+        onClearUp: @escaping Action
+    ) {
+        self.isProcessOnMain = isProcessOnMain
+        self._onProcess = onProcess
+        self._onClearUp = onClearUp
+    }
     
-    func subscribe(_ function: @escaping BiHandler<Output, Handler<Input>>) -> Subscription<Input, Output> {
-        Subscription(machine: self, callback: function)
+    public func onProcess(input: Input?, callback: @escaping Handler<Output>) {
+        _onProcess(input, callback)
+    }
+    
+    public func onClearUp() {
+        _onClearUp()
     }
 }
-

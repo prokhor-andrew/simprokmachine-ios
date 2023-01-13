@@ -6,28 +6,27 @@
 //  Copyright (c) 2022 simprok. All rights reserved.
 
 
-public protocol ParentMachine: Machine {
-    associatedtype Child: Machine where Child.Input == Input, Child.Output == Output
+public final class ParentMachine<Input, Output>: Automaton {
     
+    private let machine: AnyObject
     
-    var child: Child { get }
-}
-
-public extension ParentMachine {
+    public let isProcessOnMain: Bool
     
-    var isProcessOnMain: Bool { false }
+    private let _onProcess: BiHandler<Input?, Handler<Output>>
+    private let _onClearUp: Action
     
-    func onProcess(input: Input?, callback: @escaping Handler<Output>) {
-        if let input = input {
-            (adopted[ObjectIdentifier(self)] as? Subscription<Input, Output>)?.send(input: input)
-        } else {
-            adopted[ObjectIdentifier(self)] = child.subscribe { output, _ in callback(output) }
-        }
+    public init<M: Automaton>(_ machine: M) where M.Input == Input, M.Output == Output {
+        self.machine = machine
+        self.isProcessOnMain = machine.isProcessOnMain
+        self._onProcess = machine.onProcess(input:callback:)
+        self._onClearUp = machine.onClearUp
     }
     
-    func onClearUp() {
-        adopted.removeValue(forKey: ObjectIdentifier(self))
+    public func onProcess(input: Input?, callback: @escaping Handler<Output>) {
+        _onProcess(input, callback)
+    }
+    
+    public func onClearUp() {
+        _onClearUp()
     }
 }
-
-fileprivate var adopted: [ObjectIdentifier: AnyObject] = [:]
