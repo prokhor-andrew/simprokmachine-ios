@@ -68,4 +68,8 @@ public struct Machines<Input, Output> {
     public init(_ array: [ParentMachine<Input, Output>]) {
         self.array = array
     }
+
+    public init() {
+        self.init([])
+    }
 }
