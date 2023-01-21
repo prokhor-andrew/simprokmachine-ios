@@ -10,14 +10,13 @@ public final class ParentMachine<Input, Output>: Automaton {
 
     private let machine: AnyObject
 
-    public let isProcessOnMain: Bool
+    public let isProcessOnMain: Bool = false
 
     private let _onProcess: BiHandler<Input?, Handler<Output>>
     private let _onClearUp: Action
 
     public init<M: Automaton>(_ machine: M) where M.Input == Input, M.Output == Output {
         self.machine = machine
-        self.isProcessOnMain = machine.isProcessOnMain
         self._onProcess = machine.onProcess(input:callback:)
         self._onClearUp = machine.onClearUp
     }
@@ -30,11 +29,11 @@ public final class ParentMachine<Input, Output>: Automaton {
         _onClearUp()
     }
 
-    public func isEqual<M: Automaton>(to object: M) -> Bool where M.Input == Input, M.Output == Output {
+    public func isChildEqual<M: Automaton>(to object: M) -> Bool where M.Input == Input, M.Output == Output {
         object === machine
     }
 
-    public func isNotEqual<M: Automaton>(to object: M) -> Bool where M.Input == Input, M.Output == Output {
-        !isEqual(to: object)
+    public func isChildNotEqual<M: Automaton>(to object: M) -> Bool where M.Input == Input, M.Output == Output {
+        !isChildEqual(to: object)
     }
 }
