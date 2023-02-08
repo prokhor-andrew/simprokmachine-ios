@@ -2,8 +2,8 @@
 //  Functions.swift
 //  simprokmachine
 //
-//  Created by Andrey Prokhorenko on 28.11.2021.
-//  Copyright (c) 2022 simprok. All rights reserved.
+//  Created by Andrey Prokhorenko on 01.01.2020.
+//  Copyright (c) 2020 simprok. All rights reserved.
 
 
 public typealias Action = () -> Void

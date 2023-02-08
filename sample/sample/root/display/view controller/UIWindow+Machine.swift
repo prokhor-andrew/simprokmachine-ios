@@ -1,5 +1,5 @@
 //
-//  UIWindow+Machine.swift
+//  UIWindow+Machine2.swift
 //  sample
 //
 //  Created by Andrey Prokhorenko on 19.02.2022.

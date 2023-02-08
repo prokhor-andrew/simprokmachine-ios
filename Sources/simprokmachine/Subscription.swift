@@ -2,73 +2,57 @@
 //  Subscription.swift
 //  simprokmachine
 //
-//  Created by Andrey Prokhorenko on 01.12.2021.
-//  Copyright (c) 2022 simprok. All rights reserved.
+//  Created by Andrey Prokhorenko on 01.01.2020.
+//  Copyright (c) 2020 simprok. All rights reserved.
 
 import Foundation
 
-/// Keep the instance of this object in order to keep the flow running
 public final class Subscription<Input, Output> {
-    
-    private let machine: AnyObject
+
     private let onProcess: BiHandler<Input?, Handler<Output>>
     private let onClearUp: Action
-    private let processQueue: DispatchQueue
-    
-    private let callback: BiHandler<Output, Handler<Input>>
-    private let outputQueue: DispatchQueue
-    
-    
-    internal init<M: Automaton>(
-        machine: M,
-        callback: @escaping BiHandler<Output, Handler<Input>>
-    ) where M.Input == Input, M.Output == Output {
-        // we check that this machine has not been subscribed to
-        assert(!subscribedToMachines.contains(ObjectIdentifier(machine)))
-        
-        subscribedToMachines.insert(ObjectIdentifier(machine))
-        
-        self.machine = machine
-        self.onProcess = machine.onProcess(input:callback:)
-        self.onClearUp = machine.onClearUp
-        self.processQueue = machine.isProcessOnMain ? DispatchQueue.main : DispatchQueue(Self.self, tag: "process")
-        
-        self.outputQueue = DispatchQueue(Self.self, tag: "output")
-        self.callback = callback
-        
+    private let onCallback: BiHandler<Output, Handler<Input>>
 
-        _send(input: nil)
+    private let processQueue: DispatchQueue
+    private let outputQueue: DispatchQueue
+
+    internal init(
+            machine: Machine<Input, Output>,
+            callback: @escaping BiHandler<Output, Handler<Input>>
+    ) {
+        onProcess = machine.onProcess
+        onClearUp = machine.onClearUp
+        onCallback = callback
+
+        processQueue = machine.isProcessOnMain ? DispatchQueue.main : Subscription.queue(tag: "process")
+        outputQueue = Subscription.queue(tag: "output")
+
+
+        _send(nil)
     }
-    
+
     deinit {
-        subscribedToMachines.remove(ObjectIdentifier(machine))
         onClearUp()
     }
-    
+
     public func send(input: Input) {
-        _send(input: input)
+        _send(input)
     }
-    
-    
-    private func _send(input: Input?) {
+
+    private func _send(_ input: Input?) {
         processQueue.async { [weak self] in
             self?.onProcess(input) { [weak self] output in
                 self?.outputQueue.async { [weak self] in
-                    guard let send = self?.send else { return }
-                    self?.callback(output, send)
+                    guard let send = self?.send else {
+                        return
+                    }
+                    self?.onCallback(output, send)
                 }
-           }
+            }
         }
     }
-}
 
-
-fileprivate extension DispatchQueue {
-    
-    convenience init<T>(_ type: T.Type, tag: String) {
-        self.init(label: String(describing: T.self) + "/" + tag, qos: .userInteractive)
+    private static func queue(tag: String) -> DispatchQueue {
+        DispatchQueue(label: String(describing: Self.self) + "/" + tag, qos: .userInteractive)
     }
 }
-
-
-fileprivate var subscribedToMachines: Set<ObjectIdentifier> = []
