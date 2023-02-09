@@ -5,20 +5,37 @@
 //  Created by Andrey Prokhorenko on 01.01.2020.
 //  Copyright (c) 2020 simprok. All rights reserved.
 
+import Foundation
+
 public struct Machine<Input, Output> {
 
-    internal let isProcessOnMain: Bool
+    internal let id: ObjectIdentifier
     internal let onProcess: BiHandler<Input?, Handler<Output>>
     internal let onClearUp: Action
+    internal let processQueue: DispatchQueue
+    internal let outputQueue: DispatchQueue
 
-    public init(
+    public init<Object: AnyObject>(
+            _ object: Object,
             isProcessOnMain: Bool = false,
-            onProcess: @escaping BiHandler<Input?, Handler<Output>>,
-            onClearUp: @escaping Action = {}
+            onProcess: @escaping TriHandler<Object, Input?, Handler<Output>>,
+            onClearUp: @escaping Handler<Object> = { _ in
+            }
     ) {
-        self.isProcessOnMain = isProcessOnMain
-        self.onProcess = onProcess
-        self.onClearUp = onClearUp
+        func queue(tag: String) -> DispatchQueue {
+            DispatchQueue(label: String(describing: Self.self) + "/" + tag, qos: .userInteractive)
+        }
+
+        processQueue = isProcessOnMain ? .main : queue(tag: "process")
+        outputQueue = queue(tag: "output")
+
+        id = ObjectIdentifier(object)
+        self.onProcess = { [object] input, callback in
+            onProcess(object, input, callback)
+        }
+        self.onClearUp = { [object] in
+            onClearUp(object)
+        }
     }
 
     public func subscribe(_ callback: @escaping BiHandler<Output, Handler<Input>>) -> Subscription<Input, Output> {
@@ -26,25 +43,30 @@ public struct Machine<Input, Output> {
     }
 }
 
-public extension Machine {
+extension Machine: Hashable {
 
-    init(_ machine: Machine<Input, Output>) {
-        self.init(isProcessOnMain: machine.isProcessOnMain, onProcess: machine.onProcess, onClearUp: machine.onClearUp)
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    public static func ==(lhs: Machine<Input, Output>, rhs: Machine<Input, Output>) -> Bool {
+        lhs.id == rhs.id
     }
 }
 
 public extension Machine {
 
-    init<Object: AnyObject>(
-            _ object: Object,
-            isProcessOnMain: Bool = false,
-            onProcess: @escaping TriHandler<Object, Input?, Handler<Output>>,
-            onClearUp: @escaping Handler<Object> = { _ in }
+    private class Dummy {
+    }
+
+    init(isProcessOnMain: Bool = false,
+         onProcess: @escaping BiHandler<Input?, Handler<Output>>,
+         onClearUp: @escaping Action = {}
     ) {
-        self.init(isProcessOnMain: isProcessOnMain, onProcess: { [object] input, callback in
-            onProcess(object, input, callback)
-        }, onClearUp: { [object] in
-            onClearUp(object)
+        self.init(Dummy(), isProcessOnMain: isProcessOnMain, onProcess: { _, input, callback in
+            onProcess(input, callback)
+        }, onClearUp: { _ in
+            onClearUp()
         });
     }
 }

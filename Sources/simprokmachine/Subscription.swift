@@ -5,34 +5,29 @@
 //  Created by Andrey Prokhorenko on 01.01.2020.
 //  Copyright (c) 2020 simprok. All rights reserved.
 
-import Foundation
 
 public final class Subscription<Input, Output> {
 
-    private let onProcess: BiHandler<Input?, Handler<Output>>
-    private let onClearUp: Action
-    private let onCallback: BiHandler<Output, Handler<Input>>
-
-    private let processQueue: DispatchQueue
-    private let outputQueue: DispatchQueue
+    private let machine: Machine<Input, Output>
+    private let callback: BiHandler<Output, Handler<Input>>
 
     internal init(
             machine: Machine<Input, Output>,
             callback: @escaping BiHandler<Output, Handler<Input>>
     ) {
-        onProcess = machine.onProcess
-        onClearUp = machine.onClearUp
-        onCallback = callback
+        // we check that this machine has not been subscribed to
+        assert(!subscribed.contains(machine.id), "Machine already subscribed")
+        subscribed.insert(machine.id)
 
-        processQueue = machine.isProcessOnMain ? DispatchQueue.main : Subscription.queue(tag: "process")
-        outputQueue = Subscription.queue(tag: "output")
-
+        self.machine = machine
+        self.callback = callback
 
         _send(nil)
     }
 
     deinit {
-        onClearUp()
+        subscribed.remove(machine.id)
+        machine.onClearUp()
     }
 
     public func send(input: Input) {
@@ -40,19 +35,17 @@ public final class Subscription<Input, Output> {
     }
 
     private func _send(_ input: Input?) {
-        processQueue.async { [weak self] in
-            self?.onProcess(input) { [weak self] output in
-                self?.outputQueue.async { [weak self] in
+        machine.processQueue.async { [weak self] in
+            self?.machine.onProcess(input) { [weak self] output in
+                self?.machine.outputQueue.async { [weak self] in
                     guard let send = self?.send else {
                         return
                     }
-                    self?.onCallback(output, send)
+                    self?.callback(output, send)
                 }
             }
         }
     }
-
-    private static func queue(tag: String) -> DispatchQueue {
-        DispatchQueue(label: String(describing: Self.self) + "/" + tag, qos: .userInteractive)
-    }
 }
+
+fileprivate var subscribed: Set<ObjectIdentifier> = []
