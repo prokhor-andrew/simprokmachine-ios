@@ -26,10 +26,8 @@ public final class Subscription<Input, Output> {
     }
 
     deinit {
-        if subscribed.contains(machine.id) {
-            subscribed.remove(machine.id)
-            machine.onClearUp()
-        }
+        subscribed.remove(machine.id)
+        machine.onClearUp()
     }
 
     public func send(input: Input) {
