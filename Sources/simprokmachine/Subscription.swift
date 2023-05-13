@@ -27,7 +27,6 @@ public final class Subscription<Input, Output> {
 
     deinit {
         subscribed.remove(machine.id)
-        machine.onClearUp()
     }
 
     public func send(input: Input) {

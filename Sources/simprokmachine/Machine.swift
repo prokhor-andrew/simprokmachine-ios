@@ -11,16 +11,13 @@ public struct Machine<Input, Output> {
 
     internal let id: ObjectIdentifier
     internal let onProcess: BiHandler<Input?, Handler<Output>>
-    internal let onClearUp: Action
     internal let processQueue: DispatchQueue
     internal let outputQueue: DispatchQueue
 
     public init<Object: AnyObject>(
             _ object: Object,
             isProcessOnMain: Bool = false,
-            onProcess: @escaping TriHandler<Object, Input?, Handler<Output>>,
-            onClearUp: @escaping Handler<Object> = { _ in
-            }
+            onProcess: @escaping TriHandler<Object, Input?, Handler<Output>>
     ) {
         func queue(tag: String) -> DispatchQueue {
             DispatchQueue(label: String(describing: Self.self) + "/" + tag, qos: .userInteractive)
@@ -32,9 +29,6 @@ public struct Machine<Input, Output> {
         id = ObjectIdentifier(object)
         self.onProcess = { [object] input, callback in
             onProcess(object, input, callback)
-        }
-        self.onClearUp = { [object] in
-            onClearUp(object)
         }
     }
 
@@ -60,13 +54,10 @@ public extension Machine {
     }
 
     init(isProcessOnMain: Bool = false,
-         onProcess: @escaping BiHandler<Input?, Handler<Output>>,
-         onClearUp: @escaping Action = {}
+         onProcess: @escaping BiHandler<Input?, Handler<Output>>
     ) {
         self.init(Dummy(), isProcessOnMain: isProcessOnMain, onProcess: { _, input, callback in
             onProcess(input, callback)
-        }, onClearUp: { _ in
-            onClearUp()
-        });
+        })
     }
 }
