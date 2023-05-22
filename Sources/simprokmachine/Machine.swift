@@ -8,7 +8,7 @@
 import Foundation
 
 
-public class Machine<Input, Output> {
+public class Machine<Input: Sendable, Output: Sendable> {
 
     private let id: ObjectIdentifier
     private let onProcess: BiHandler<Input?, Handler<Output>>
