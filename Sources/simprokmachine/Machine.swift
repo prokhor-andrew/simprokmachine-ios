@@ -59,7 +59,7 @@ public class Machine<Input: Sendable, Output: Sendable> {
     }
     
     public func started(
-        isConsumeOnMain: Bool,
+        isConsumeOnMain: Bool = false,
         onConsume: @escaping BiHandler<Output, Handler<Input>>
     ) -> Machine<Input, Output> {
         start(isConsumeOnMain: isConsumeOnMain, onConsume: onConsume)
