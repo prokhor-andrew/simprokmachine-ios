@@ -58,6 +58,19 @@ public class Machine<Input: Sendable, Output: Sendable> {
         return true
     }
     
+    public func started(
+        isConsumeOnMain: Bool,
+        onConsume: @escaping BiHandler<Output, Handler<Input>>
+    ) -> Machine<Input, Output> {
+        start(isConsumeOnMain: isConsumeOnMain, onConsume: onConsume)
+        return self
+    }
+    
+    public func stopped() -> Machine<Input, Output> {
+        stop()
+        return self
+    }
+    
     @discardableResult
     public func send(input: Input) -> Bool {
         sub?.send(input: input)
