@@ -21,9 +21,8 @@ public final class Process<Input: Sendable, Output: Sendable, State: Sendable>: 
         
         sink = isink
         task = Task.detached(priority: nil) {
+            let object = machine.onInitial(state, osink)
             async let ipipe: Void = {
-                let object = machine.onInitial(state, osink)
-
                 for await input in istream {
                     await machine.onProcess(object, input)
                 }
