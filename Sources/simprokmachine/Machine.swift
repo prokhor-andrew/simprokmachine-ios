@@ -57,23 +57,29 @@ extension Machine: Hashable {
 
 public extension Machine {
     
-    private actor Dummy {}
+    private actor Dummy<T> {
+        let callback: @Sendable (T) -> Void
+        
+        init(_ callback: @Sendable @escaping (T) -> Void) {
+            self.callback = callback
+        }
+    }
     
     init(
         iBufferStrategy: MachineBufferStrategy<Input>,
         oBufferStrategy: MachineBufferStrategy<Output>,
         onInitial: @escaping @Sendable (State, @Sendable @escaping (Output) -> Void) -> Void,
-        onProcess: @escaping @Sendable (Input) -> Void
+        onProcess: @escaping @Sendable (Input, @Sendable @escaping (Output) -> Void) -> Void
     ) {
         self.init(
             iBufferStrategy: iBufferStrategy,
             oBufferStrategy: oBufferStrategy,
             onInitial: { state, callback in
                 onInitial(state, callback)
-                return Dummy()
+                return Dummy<Output>(callback)
             },
-            onProcess: { _, input in
-                onProcess(input)
+            onProcess: { object, input in
+                onProcess(input, object.callback)
             }
         )
     }
