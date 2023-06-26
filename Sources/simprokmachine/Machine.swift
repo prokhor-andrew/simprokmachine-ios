@@ -5,150 +5,76 @@
 //  Created by Andrey Prokhorenko on 01.01.2020.
 //  Copyright (c) 2020 simprok. All rights reserved.
 
-import Foundation
 
-
-public class Machine<Input: Sendable, Output: Sendable> {
-
-    private let id: ObjectIdentifier
-    private let onProcess: BiHandler<Input?, Handler<Output>>
-    private let isProcessOnMain: Bool
+public struct Machine<Input: Sendable, Output: Sendable, State: Sendable>: Sendable {
     
-    private var sub: Subscription<Input, Output>?
+    private final class Id {}
     
-    public init<Object: AnyObject>(
-            _ object: Object,
-            isProcessOnMain: Bool = false,
-            onProcess: @escaping TriHandler<Object, Input?, Handler<Output>>
+    private let _id = ObjectIdentifier(Id())
+    
+    internal let iBufferStrategy: MachineBufferStrategy<Input>
+    internal let oBufferStrategy: MachineBufferStrategy<Output>
+    internal let onInitial: @Sendable (State, @Sendable @escaping (Output) -> Void) -> Actor
+    internal let onProcess: @Sendable (isolated Actor, Input) async -> Void
+    
+    public init<Object: Actor>(
+        iBufferStrategy: MachineBufferStrategy<Input>,
+        oBufferStrategy: MachineBufferStrategy<Output>,
+        onInitial: @escaping @Sendable (State, @Sendable @escaping (Output) -> Void) -> Object,
+        onProcess: @escaping @Sendable (isolated Object, Input) -> Void
     ) {
-        id = ObjectIdentifier(object)
-        self.isProcessOnMain = isProcessOnMain
-        self.onProcess = { [object] input, callback in
-            onProcess(object, input, callback)
+        self.iBufferStrategy = iBufferStrategy
+        self.oBufferStrategy = oBufferStrategy
+        self.onInitial = onInitial
+        self.onProcess = {
+            await onProcess($0 as! Object, $1)
         }
     }
     
-    @discardableResult
-    public func start(
-        isConsumeOnMain: Bool = false,
-        onConsume: @escaping BiHandler<Output, Handler<Input>>
-    ) -> Bool {
-        if sub != nil {
-            return false
-        }
-        
-        sub = Subscription(
-            isProcessOnMain: isProcessOnMain,
-            isConsumeOnMain: isConsumeOnMain,
-            onProcess: onProcess,
-            onConsume: onConsume
-        )
-        
-        return true
+    public func run(
+        _ state: State,
+        onConsume: @escaping @Sendable (Output, @Sendable (Input) -> Void) -> Void
+    ) -> Process<Input, Output, State> {
+        Process(machine: self, state: state, onConsume: onConsume)
     }
     
-    @discardableResult
-    public func stop() -> Bool {
-        if sub == nil {
-            return false
-        }
-        
-        sub = nil
-        
-        return true
-    }
-    
-    public func started(
-        isConsumeOnMain: Bool = false,
-        onConsume: @escaping BiHandler<Output, Handler<Input>>
-    ) -> Machine<Input, Output> {
-        start(isConsumeOnMain: isConsumeOnMain, onConsume: onConsume)
-        return self
-    }
-    
-    public func stopped() -> Machine<Input, Output> {
-        stop()
-        return self
-    }
-    
-    @discardableResult
-    public func send(input: Input) -> Bool {
-        sub?.send(input: input)
-        return sub != nil
-    }
-    
-    public var isRunning: Bool {
-        sub != nil
+    public var id: String {
+        "\(_id)"
     }
 }
 
-extension Machine: Hashable {
-
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-
-    public static func ==(lhs: Machine<Input, Output>, rhs: Machine<Input, Output>) -> Bool {
+extension Machine: Equatable {
+    public static func == (lhs: Machine<Input, Output, State>, rhs: Machine<Input, Output, State>) -> Bool {
         lhs.id == rhs.id
     }
 }
 
-public extension Machine {
-
-    private class Dummy {
-    }
-
-    convenience init(
-        isProcessOnMain: Bool = false,
-        onProcess: @escaping BiHandler<Input?, Handler<Output>>
-    ) {
-        self.init(Dummy(), isProcessOnMain: isProcessOnMain, onProcess: { _, input, callback in
-            onProcess(input, callback)
-        })
+extension Machine: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
 
-private final class Subscription<Input, Output> {
-
-    private let processQueue: DispatchQueue
-    private let outputQueue: DispatchQueue
-
-    private let onProcess: BiHandler<Input?, Handler<Output>>
-    private let onConsume: BiHandler<Output, Handler<Input>>
+public extension Machine {
     
-    internal init(
-        isProcessOnMain: Bool,
-        isConsumeOnMain: Bool,
-        onProcess: @escaping BiHandler<Input?, Handler<Output>>,
-        onConsume: @escaping BiHandler<Output, Handler<Input>>
+    private actor Dummy {}
+    
+    init(
+        iBufferStrategy: MachineBufferStrategy<Input>,
+        oBufferStrategy: MachineBufferStrategy<Output>,
+        onInitial: @escaping @Sendable (State, @Sendable @escaping (Output) -> Void) -> Void,
+        onProcess: @escaping @Sendable (Input) -> Void
     ) {
-        func queue(tag: String) -> DispatchQueue {
-            DispatchQueue(label: String(describing: Self.self) + "/" + tag, qos: .userInteractive)
-        }
-
-        self.processQueue = isProcessOnMain ? .main : queue(tag: "process")
-        self.outputQueue = isConsumeOnMain ? .main : queue(tag: "output")
-        
-        self.onProcess = onProcess
-        self.onConsume = onConsume
-
-        _send(nil)
-    }
-
-    internal func send(input: Input) {
-        _send(input)
-    }
-
-    private func _send(_ input: Input?) {
-        processQueue.async { [weak self] in
-            self?.onProcess(input) { [weak self] output in
-                self?.outputQueue.async { [weak self] in
-                    guard let send = self?.send else {
-                        return
-                    }
-                    self?.onConsume(output, send)
-                }
+        self.init(
+            iBufferStrategy: iBufferStrategy,
+            oBufferStrategy: oBufferStrategy,
+            onInitial: { state, callback in
+                onInitial(state, callback)
+                return Dummy()
+            },
+            onProcess: { _, input in
+                onProcess(input)
             }
-        }
+        )
     }
 }
