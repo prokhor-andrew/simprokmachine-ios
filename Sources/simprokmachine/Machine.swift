@@ -6,36 +6,28 @@
 //  Copyright (c) 2020 simprok. All rights reserved.
 
 
-public struct Machine<Input: Sendable, Output: Sendable, State: Sendable>: Sendable {
+public struct Machine<Input: Sendable, Output: Sendable>: Sendable {
     
     private final class Id {}
     
     private let _id = ObjectIdentifier(Id())
     
-    internal let iBufferStrategy: MachineBufferStrategy<Input>
-    internal let oBufferStrategy: MachineBufferStrategy<Output>
-    internal let onInitial: @Sendable (State, @Sendable @escaping (Output) -> Void) -> Actor
+    internal let onCreate: @Sendable () -> Actor
+    internal let onChange: @Sendable (isolated Actor, (@Sendable (Output) async -> Void)?) async -> Void
     internal let onProcess: @Sendable (isolated Actor, Input) async -> Void
     
     public init<Object: Actor>(
-        iBufferStrategy: MachineBufferStrategy<Input>,
-        oBufferStrategy: MachineBufferStrategy<Output>,
-        onInitial: @escaping @Sendable (State, @Sendable @escaping (Output) -> Void) -> Object,
+        _ object: @escaping @Sendable @autoclosure () -> Object,
+        onChange: @escaping @Sendable (isolated Object, (@Sendable (Output) async -> Void)?) -> Void,
         onProcess: @escaping @Sendable (isolated Object, Input) -> Void
     ) {
-        self.iBufferStrategy = iBufferStrategy
-        self.oBufferStrategy = oBufferStrategy
-        self.onInitial = onInitial
+        self.onCreate = object
+        self.onChange = {
+            await onChange($0 as! Object, $1)
+        }
         self.onProcess = {
             await onProcess($0 as! Object, $1)
         }
-    }
-    
-    public func run(
-        _ state: State,
-        onConsume: @escaping @Sendable (Output, @Sendable (Input) -> Void) -> Void
-    ) -> Process<Input, Output, State> {
-        Process(machine: self, state: state, onConsume: onConsume)
     }
     
     public var id: String {
@@ -44,7 +36,7 @@ public struct Machine<Input: Sendable, Output: Sendable, State: Sendable>: Senda
 }
 
 extension Machine: Equatable {
-    public static func == (lhs: Machine<Input, Output, State>, rhs: Machine<Input, Output, State>) -> Bool {
+    public static func == (lhs: Machine<Input, Output>, rhs: Machine<Input, Output>) -> Bool {
         lhs.id == rhs.id
     }
 }
@@ -55,32 +47,12 @@ extension Machine: Hashable {
     }
 }
 
-public extension Machine {
-    
-    private actor Dummy<T> {
-        let callback: @Sendable (T) -> Void
-        
-        init(_ callback: @Sendable @escaping (T) -> Void) {
-            self.callback = callback
-        }
-    }
-    
-    init(
-        iBufferStrategy: MachineBufferStrategy<Input>,
-        oBufferStrategy: MachineBufferStrategy<Output>,
-        onInitial: @escaping @Sendable (State, @Sendable @escaping (Output) -> Void) -> Void,
-        onProcess: @escaping @Sendable (Input, @Sendable @escaping (Output) -> Void) -> Void
-    ) {
-        self.init(
-            iBufferStrategy: iBufferStrategy,
-            oBufferStrategy: oBufferStrategy,
-            onInitial: { state, callback in
-                onInitial(state, callback)
-                return Dummy<Output>(callback)
-            },
-            onProcess: { object, input in
-                onProcess(input, object.callback)
-            }
-        )
+public extension Actor {
+
+    func run<Input: Sendable, Output: Sendable>(
+        _ machine: Machine<Input, Output>,
+        onConsume: @escaping @Sendable (isolated Self, Output) -> Void
+    ) -> Process<Input, Output> {
+        Process(object: self, machine: machine, onConsume: onConsume)
     }
 }
