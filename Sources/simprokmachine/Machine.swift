@@ -8,10 +8,6 @@
 
 public struct Machine<Input: Sendable, Output: Sendable>: Sendable {
     
-    private final class Id {}
-    
-    private let _id = ObjectIdentifier(Id())
-    
     internal let onCreate: @Sendable () -> Actor
     internal let onChange: @Sendable (isolated Actor, (@Sendable (Output) async -> Void)?) async -> Void
     internal let onProcess: @Sendable (isolated Actor, Input) async -> Void
@@ -19,7 +15,7 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable {
     public init<Object: Actor>(
         _ object: @escaping @Sendable () -> Object,
         onChange: @escaping @Sendable (isolated Object, (@Sendable (Output) async -> Void)?) -> Void,
-        onProcess: @escaping @Sendable (isolated Object, Input) -> Void
+        onProcess: @escaping @Sendable (isolated Object, Input) async -> Void
     ) {
         self.onCreate = object
         self.onChange = {
@@ -29,30 +25,12 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable {
             await onProcess($0 as! Object, $1)
         }
     }
+}
+
+
+public extension Machine {
     
-    public var id: String {
-        "\(_id)"
-    }
-}
-
-extension Machine: Equatable {
-    public static func == (lhs: Machine<Input, Output>, rhs: Machine<Input, Output>) -> Bool {
-        lhs.id == rhs.id
-    }
-}
-
-extension Machine: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-}
-
-public extension Actor {
-
-    func run<Input: Sendable, Output: Sendable>(
-        _ machine: Machine<Input, Output>,
-        onConsume: @escaping @Sendable (isolated Self, Output) -> Void
-    ) -> Process<Input, Output> {
-        Process(object: self, machine: machine, onConsume: onConsume)
+    func run(@_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void) -> Process<Input, Output> {
+        Process(machine: self, onConsume: onConsume)
     }
 }

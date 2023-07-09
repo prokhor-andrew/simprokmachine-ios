@@ -11,10 +11,9 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
     private let task: Task<Void, Never>
     private let pipe: Channel<Input>
     
-    internal init<Object: Actor>(
-        object: Object,
+    internal init(
         machine: Machine<Input, Output>,
-        onConsume: @escaping @Sendable (isolated Object, Output) -> Void
+        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
     ) {
         let ipipe = Channel<Input>()
         let opipe = Channel<Output>()
@@ -36,10 +35,9 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
                     }
                 }()
                 
-                async let o: Void = { [weak object] in
+                async let o: Void = {
                     for await output in opipe {
-                        guard let object else { continue }
-                        await onConsume(object, output)
+                        await onConsume(output)
                     }
                 }()
                 
