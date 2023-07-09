@@ -17,7 +17,7 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable {
     internal let onProcess: @Sendable (isolated Actor, Input) async -> Void
     
     public init<Object: Actor>(
-        _ object: @escaping @Sendable @autoclosure () -> Object,
+        _ object: @escaping @Sendable () -> Object,
         onChange: @escaping @Sendable (isolated Object, (@Sendable (Output) async -> Void)?) -> Void,
         onProcess: @escaping @Sendable (isolated Object, Input) -> Void
     ) {
