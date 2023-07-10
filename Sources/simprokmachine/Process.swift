@@ -24,14 +24,14 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
                 return
             }
             
-            let processed = machine.onCreate()
+            let object = machine.onCreate()
             
-            await machine.onChange(processed, opipe.yield(_:))
+            await machine.onChange(object, opipe.yield(_:))
             
             await {
                 async let i: Void = {
                     for await input in ipipe {
-                        await machine.onProcess(processed, input)
+                        await machine.onProcess(object, input)
                     }
                 }()
                 
@@ -45,7 +45,7 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
                 _ = await [i, o]
             }()
             
-            await machine.onChange(processed, nil)
+            await machine.onChange(object, nil)
         }
     }
     

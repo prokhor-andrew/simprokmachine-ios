@@ -8,9 +8,17 @@
 
 public struct Machine<Input: Sendable, Output: Sendable>: Sendable {
     
+    private final class Id {}
+
+    private let _id = ObjectIdentifier(Id())
+    
     internal let onCreate: @Sendable () -> Actor
     internal let onChange: @Sendable (isolated Actor, (@Sendable (Output) async -> Void)?) async -> Void
     internal let onProcess: @Sendable (isolated Actor, Input) async -> Void
+    
+    public var id: String {
+        "\(_id)"
+    }
     
     public init<Object: Actor>(
         _ object: @escaping @Sendable () -> Object,
@@ -27,6 +35,17 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable {
     }
 }
 
+extension Machine: Equatable {
+    public static func == (lhs: Machine<Input, Output>, rhs: Machine<Input, Output>) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+extension Machine: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
 
 public extension Machine {
     
