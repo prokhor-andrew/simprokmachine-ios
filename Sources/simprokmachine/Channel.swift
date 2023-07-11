@@ -9,20 +9,11 @@
 final class ChannelIterator<T>: Sendable, AsyncIteratorProtocol {
     typealias Element = T
     
-    private final class Id {
-        
-        private init() {}
-        
-        static func generate() -> String {
-            "\(ObjectIdentifier(Id()))"
-        }
-    }
-    
     private let state = ManagedCriticalState(ChannelState<T>.idle)
 
     
     func next() async -> T? {
-        let id = Id.generate()
+        let id = String.id
         return await withTaskCancellationHandler {
             await withCheckedContinuation { cont in
                 if Task.isCancelled {
@@ -79,7 +70,7 @@ final class ChannelIterator<T>: Sendable, AsyncIteratorProtocol {
     }
     
     func yield(_ val: T) async {
-        let id = Id.generate()
+        let id = String.id
         let _: Void = await withTaskCancellationHandler {
             await withCheckedContinuation { cont in
                 if Task.isCancelled {
