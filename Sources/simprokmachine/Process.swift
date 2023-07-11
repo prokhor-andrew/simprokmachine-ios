@@ -12,9 +12,12 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
     private let pipe: Channel<Input>
     
     internal init(
+        _id: String,
         machine: Machine<Input, Output>,
         @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
     ) {
+        id = _id
+        
         let ipipe = Channel<Input>()
         let opipe = Channel<Output>()
         
@@ -53,6 +56,8 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
         task.cancel()
     }
     
+    public let id: String
+    
     public func send(_ input: Input) async {
         await pipe.yield(input)
     }
@@ -64,12 +69,12 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
 
 extension Process: Equatable {
     public static func == (lhs: Process<Input, Output>, rhs: Process<Input, Output>) -> Bool {
-        lhs === rhs
+        lhs.id == rhs.id
     }
 }
 
 extension Process: Hashable {
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(ObjectIdentifier(self))
+        hasher.combine(id)
     }
 }

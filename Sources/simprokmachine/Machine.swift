@@ -16,9 +16,7 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable {
     internal let onChange: @Sendable (isolated Actor, (@Sendable (Output) async -> Void)?) async -> Void
     internal let onProcess: @Sendable (isolated Actor, Input) async -> Void
     
-    public var id: String {
-        "\(_id)"
-    }
+    public var id: String { "\(_id)" }
     
     public init<Object: Actor>(
         _ object: @escaping @Sendable () -> Object,
@@ -50,6 +48,6 @@ extension Machine: Hashable {
 public extension Machine {
     
     func run(@_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void) -> Process<Input, Output> {
-        Process(machine: self, onConsume: onConsume)
+        Process(_id: id, machine: self, onConsume: onConsume)
     }
 }
