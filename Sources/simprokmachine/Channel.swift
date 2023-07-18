@@ -6,7 +6,7 @@
 //
 
 
-final class ChannelIterator<T>: Sendable, AsyncIteratorProtocol {
+final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
     typealias Element = T
     
     private let state = ManagedCriticalState(ChannelState<T>.idle)
@@ -138,7 +138,7 @@ final class ChannelIterator<T>: Sendable, AsyncIteratorProtocol {
     }
 }
 
-final class Channel<T>: Sendable, AsyncSequence {
+final class Channel<T: Sendable>: Sendable, AsyncSequence {
     typealias AsyncIterator = ChannelIterator<T>
     typealias Element = T
     
@@ -153,19 +153,19 @@ final class Channel<T>: Sendable, AsyncSequence {
 }
 
 
-enum ChannelState<T> {
+enum ChannelState<T: Sendable>: Sendable {
     case idle
     case awaitingForProducer(cur: ChannelConsumer<T>, rest: [ChannelConsumer<T>])
     case awaitingForConsumer(cur: ChannelProducer<T>, rest: [ChannelProducer<T>])
 }
 
-struct ChannelProducer<T> {
+struct ChannelProducer<T: Sendable>: Sendable {
     let id: String
     let value: T
     let cont: CheckedContinuation<Void, Never>
 }
 
-struct ChannelConsumer<T> {
+struct ChannelConsumer<T: Sendable>: Sendable {
     let id: String
     let cont: CheckedContinuation<T?, Never>
 }
