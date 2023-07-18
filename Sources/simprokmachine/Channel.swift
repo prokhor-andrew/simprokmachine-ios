@@ -11,6 +11,22 @@ final class ChannelIterator<T>: Sendable, AsyncIteratorProtocol {
     
     private let state = ManagedCriticalState(ChannelState<T>.idle)
 
+    deinit {
+        state.withCriticalRegion { state in
+            switch state {
+            case .awaitingForConsumer(let cur, let rest):
+                cur.cont.resume()
+                rest.forEach { $0.cont.resume() }
+                state = .idle
+            case .awaitingForProducer(let cur, let rest):
+                cur.cont.resume(returning: nil)
+                rest.forEach { $0.cont.resume(returning: nil) }
+                state = .idle
+            case .idle:
+                break
+            }
+        }
+    }
     
     func next() async -> T? {
         let id = String.id
