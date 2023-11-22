@@ -9,16 +9,23 @@
 public struct Machine<Input: Sendable, Output: Sendable>: Sendable {
     
     internal let onCreate: @Sendable () -> Actor
-    internal let onChange: @Sendable (isolated Actor, (@Sendable (Output) async -> Void)?) async -> Void
+    internal let onChange: @Sendable (isolated Actor, MachineCallback<Output>?) async -> Void
     internal let onProcess: @Sendable (isolated Actor, Input) async -> Void
+    
+    internal let inputBufferStrategy: MachineBufferStrategy<Input>
+    internal let outputBufferStrategy: MachineBufferStrategy<Output>
     
     public let id: String = .id
     
     public init<Object: Actor>(
         _ object: @escaping @Sendable () -> Object,
-        onChange: @escaping @Sendable (isolated Object, (@Sendable (Output) async -> Void)?) -> Void,
-        onProcess: @escaping @Sendable (isolated Object, Input) async -> Void
+        onChange: @escaping @Sendable (isolated Object, MachineCallback<Output>?) -> Void,
+        onProcess: @escaping @Sendable (isolated Object, Input) async -> Void,
+        inputBufferStrategy: MachineBufferStrategy<Input> = .default,
+        outputBufferStrategy: MachineBufferStrategy<Output> = .default
     ) {
+        self.inputBufferStrategy = inputBufferStrategy
+        self.outputBufferStrategy = outputBufferStrategy
         self.onCreate = object
         self.onChange = {
             await onChange($0 as! Object, $1)
@@ -43,7 +50,17 @@ extension Machine: Hashable {
 
 public extension Machine {
     
-    func run(@_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void) -> Process<Input, Output> {
-        Process(_id: id, machine: self, onConsume: onConsume)
+    func run(
+        inputBufferStrategy: MachineBufferStrategy<Input>? = nil,
+        outputBufferStrategy: MachineBufferStrategy<Output>? = nil,
+        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
+    ) -> Process<Input, Output> {
+        Process(
+            _id: id,
+            iBufferStrategy: inputBufferStrategy,
+            oBufferStrategy: outputBufferStrategy,
+            machine: self,
+            onConsume: onConsume
+        )
     }
 }

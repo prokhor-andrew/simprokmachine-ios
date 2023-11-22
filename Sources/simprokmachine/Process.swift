@@ -13,13 +13,15 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
     
     internal init(
         _id: String,
+        iBufferStrategy: MachineBufferStrategy<Input>?,
+        oBufferStrategy: MachineBufferStrategy<Output>?,
         machine: Machine<Input, Output>,
         @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
     ) {
         id = _id
         
-        let ipipe = Channel<Input>()
-        let opipe = Channel<Output>()
+        let ipipe = Channel<Input>(bufferStrategy: iBufferStrategy ?? machine.inputBufferStrategy)
+        let opipe = Channel<Output>(bufferStrategy: oBufferStrategy ?? machine.outputBufferStrategy)
         
         pipe = ipipe
         task = Task(priority: nil) {
@@ -29,7 +31,7 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
             
             let object = machine.onCreate()
             
-            await machine.onChange(object, opipe.yield(_:))
+            await machine.onChange(object, MachineCallback(opipe.yield(_:)))
             
             await {
                 async let i: Void = {
@@ -58,11 +60,13 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
     
     public let id: String
     
-    public func send(_ input: Input) async {
+    @discardableResult
+    public func send(_ input: Input) async -> Bool {
         await pipe.yield(input)
     }
     
-    public func callAsFunction(_ input: Input) async {
+    @discardableResult
+    public func callAsFunction(_ input: Input) async -> Bool {
         await send(input)
     }
 }

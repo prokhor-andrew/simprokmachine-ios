@@ -5,18 +5,22 @@
 //  Created by Andriy Prokhorenko on 02.07.2023.
 //
 
-
 final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
     typealias Element = T
     
     private let state = ManagedCriticalState(ChannelState<T>.idle)
+    
+    private let bufferStrategy: MachineBufferStrategy<T>
+    
+    init(bufferStrategy: MachineBufferStrategy<T>) {
+        self.bufferStrategy = bufferStrategy
+    }
 
     deinit {
         state.withCriticalRegion { state in
             switch state {
-            case .awaitingForConsumer(let cur, let rest):
-                cur.cont.resume()
-                rest.forEach { $0.cont.resume() }
+            case .awaitingForConsumer(let array):
+                array.forEach { $0.cont.resume(returning: false) }
                 state = .idle
             case .awaitingForProducer(let cur, let rest):
                 cur.cont.resume(returning: nil)
@@ -40,18 +44,13 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
                     switch state {
                     case .idle:
                         state = .awaitingForProducer(cur: ChannelConsumer(id: id, cont: cont), rest: [])
-                    case .awaitingForConsumer(let cur, let rest):
-                        if rest.isEmpty {
-                            state = .idle
-                            cur.cont.resume()
-                            cont.resume(returning: cur.value)
-                        } else {
-                            state = .awaitingForConsumer(cur: rest[0], rest: Array(rest.dropFirst()))
-                            cur.cont.resume()
-                            cont.resume(returning: cur.value)
-                        }
                     case .awaitingForProducer(let cur, let rest):
                         state = .awaitingForProducer(cur: cur, rest: rest + [ChannelConsumer(id: id, cont: cont)])
+                    case .awaitingForConsumer(let array):
+                        array[0].cont.resume(returning: true) // array must never be empty so these lines are perfectly fine
+                        cont.resume(returning: array[0].data)
+                        
+                        handleBuffer(&state, event: .removed(isConsumed: true), currentArray: Array(array.dropFirst()))
                     }
                 }
             }
@@ -71,10 +70,10 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
                         }
                     } else {
                         let new = rest.filter { item in
-                            if item.id == id {
-                                item.cont.resume(returning: nil)
+                            if item.id != id {
                                 return true
                             } else {
+                                item.cont.resume(returning: nil)
                                 return false
                             }
                         }
@@ -85,25 +84,24 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
         }
     }
     
-    func yield(_ val: T) async {
+    func yield(_ val: T) async -> Bool {
         let id = String.id
-        let _: Void = await withTaskCancellationHandler {
+        return await withTaskCancellationHandler {
             await withCheckedContinuation { cont in
                 if Task.isCancelled {
-                    cont.resume()
+                    cont.resume(returning: false)
                     return
                 }
                 state.withCriticalRegion { state in
                     switch state {
                     case .idle:
-                        state = .awaitingForConsumer(cur: ChannelProducer(id: id, value: val, cont: cont), rest: [])
+                        handleBuffer(&state, event: .added, currentArray: [MachineBufferData(id: id, data: val, cont: cont)])
+                    case .awaitingForConsumer(let array):
+                        handleBuffer(&state, event: .added, currentArray: array + [MachineBufferData(id: id, data: val, cont: cont)])
                     case .awaitingForProducer(let cur, let rest):
                         state = .idle
-                        cur.cont.resume(returning: val)
-                        rest.forEach { $0.cont.resume(returning: val) }
-                        cont.resume()
-                    case .awaitingForConsumer(let cur, let rest):
-                        state = .awaitingForConsumer(cur: cur, rest: rest + [ChannelProducer(id: id, value: val, cont: cont)])
+                        ([cur] + rest).forEach { $0.cont.resume(returning: val) }
+                        cont.resume(returning: true)
                     }
                 }
             }
@@ -112,29 +110,18 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
                 switch state {
                 case .idle, .awaitingForProducer:
                     break // do nothing, as there is no continuation to be resumed
-                case .awaitingForConsumer(let cur, let rest):
-                    if cur.id == id {
-                        if rest.isEmpty {
-                            state = .idle
-                            cur.cont.resume()
-                        } else {
-                            state = .awaitingForConsumer(cur: rest[0], rest: Array(rest.dropFirst()))
-                            cur.cont.resume()
-                        }
-                    } else {
-                        let new = rest.filter { item in
-                            if item.id == id {
-                                item.cont.resume()
-                                return true
-                            } else {
-                                return false
-                            }
-                        }
-                        state = .awaitingForConsumer(cur: cur, rest: new)
-                    }
+                case .awaitingForConsumer(let array):
+                    handleBuffer(&state, event: .removed(isConsumed: false), currentArray: array.filter { $0.id != id })
                 }
             }
         }
+    }
+    
+    private func handleBuffer(_ state: inout ChannelState<T>, event: MachineBufferEvent, currentArray: [MachineBufferData<T>]) {
+        let bufferedArray = bufferStrategy.bufferReducer(currentArray, event)
+        let difference = Set(currentArray).symmetricDifference(Set(bufferedArray))
+        state = bufferedArray.isEmpty ? .idle : .awaitingForConsumer(bufferedArray)
+        difference.forEach { $0.cont.resume(returning: false) }
     }
 }
 
@@ -142,12 +129,16 @@ final class Channel<T: Sendable>: Sendable, AsyncSequence {
     typealias AsyncIterator = ChannelIterator<T>
     typealias Element = T
     
-    private let iterator = ChannelIterator<T>()
+    private let iterator: ChannelIterator<T>
+    
+    init(bufferStrategy: MachineBufferStrategy<T>) {
+        self.iterator = ChannelIterator<T>(bufferStrategy: bufferStrategy)
+    }
     
     func makeAsyncIterator() -> ChannelIterator<T> { iterator }
     
     @Sendable
-    func yield(_ val: T) async {
+    func yield(_ val: T) async -> Bool {
         await iterator.yield(val)
     }
 }
@@ -156,14 +147,9 @@ final class Channel<T: Sendable>: Sendable, AsyncSequence {
 enum ChannelState<T: Sendable>: Sendable {
     case idle
     case awaitingForProducer(cur: ChannelConsumer<T>, rest: [ChannelConsumer<T>])
-    case awaitingForConsumer(cur: ChannelProducer<T>, rest: [ChannelProducer<T>])
+    case awaitingForConsumer([MachineBufferData<T>])
 }
 
-struct ChannelProducer<T: Sendable>: Sendable {
-    let id: String
-    let value: T
-    let cont: CheckedContinuation<Void, Never>
-}
 
 struct ChannelConsumer<T: Sendable>: Sendable {
     let id: String
