@@ -13,6 +13,7 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
     
     internal init(
         _id: String,
+        logger: @escaping (String) -> Void,
         iBufferStrategy: MachineBufferStrategy<Input>?,
         oBufferStrategy: MachineBufferStrategy<Output>?,
         machine: Machine<Input, Output>,
@@ -29,7 +30,7 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
                 return
             }
             
-            let object = machine.onCreate()
+            let object = machine.onCreate(logger)
             
             await machine.onChange(object, MachineCallback(opipe.yield(_:)))
             
