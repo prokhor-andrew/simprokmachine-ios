@@ -6,17 +6,17 @@
 //
 
 
-public final class Process<Input: Sendable, Output: Sendable>: Sendable {
+public final class Process<Input: Sendable, Output: Sendable, Message>: Sendable {
     
     private let task: Task<Void, Never>
     private let pipe: Channel<Input>
     
     internal init(
         _id: String,
-        logger: @escaping (String) -> Void,
+        logger: @escaping (Message) -> Void,
         iBufferStrategy: MachineBufferStrategy<Input>?,
         oBufferStrategy: MachineBufferStrategy<Output>?,
-        machine: Machine<Input, Output>,
+        machine: Machine<Input, Output, Message>,
         @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
     ) {
         id = _id
@@ -73,7 +73,7 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable {
 }
 
 extension Process: Equatable {
-    public static func == (lhs: Process<Input, Output>, rhs: Process<Input, Output>) -> Bool {
+    public static func == (lhs: Process<Input, Output, Message>, rhs: Process<Input, Output, Message>) -> Bool {
         lhs.id == rhs.id
     }
 }
