@@ -6,20 +6,19 @@
 //
 
 
-public final class Process<Input: Sendable, Output: Sendable, Message>: Sendable {
+public final class Process<Input: Sendable, Output: Sendable>: Sendable {
     
     private let task: Task<Void, Never>
     private let pipe: Channel<Input>
     
     internal init(
-        _id: String,
-        logger: @escaping (Message) -> Void,
+        logger: @escaping (Loggable) -> Void,
         iBufferStrategy: MachineBufferStrategy<Input>?,
         oBufferStrategy: MachineBufferStrategy<Output>?,
-        machine: Machine<Input, Output, Message>,
+        machine: Machine<Input, Output>,
         @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
     ) {
-        id = _id
+        id = machine.id
         
         let ipipe = Channel<Input>(bufferStrategy: iBufferStrategy ?? machine.inputBufferStrategy)
         let opipe = Channel<Output>(bufferStrategy: oBufferStrategy ?? machine.outputBufferStrategy)
@@ -30,14 +29,14 @@ public final class Process<Input: Sendable, Output: Sendable, Message>: Sendable
                 return
             }
             
-            let object = machine.onCreate(logger)
+            let object = machine.onCreate(machine.id, logger)
             
-            await machine.onChange(object, MachineCallback(opipe.yield(_:)))
+            await machine.onChange(object, machine.id, MachineCallback(opipe.yield(_:)))
             
             await {
                 async let i: Void = {
                     for await input in ipipe {
-                        await machine.onProcess(object, input)
+                        await machine.onProcess(object, machine.id, input)
                     }
                 }()
                 
@@ -51,7 +50,7 @@ public final class Process<Input: Sendable, Output: Sendable, Message>: Sendable
                 _ = await [i, o]
             }()
             
-            await machine.onChange(object, nil)
+            await machine.onChange(object, machine.id, nil)
         }
     }
     
@@ -73,7 +72,7 @@ public final class Process<Input: Sendable, Output: Sendable, Message>: Sendable
 }
 
 extension Process: Equatable {
-    public static func == (lhs: Process<Input, Output, Message>, rhs: Process<Input, Output, Message>) -> Bool {
+    public static func == (lhs: Process<Input, Output>, rhs: Process<Input, Output>) -> Bool {
         lhs.id == rhs.id
     }
 }
