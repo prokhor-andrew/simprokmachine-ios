@@ -6,7 +6,7 @@
 //
 
 
-public struct MachineBufferData<T: Sendable>: Sendable {
+public struct MachineBufferData<T: Sendable>: Identifiable, Sendable {
     
     public let id: String
     public let data: T
