@@ -6,7 +6,7 @@
 //
 
 
-public enum MachineBufferEvent: Sendable {
+public enum MachineBufferEvent: Sendable, Hashable {
     case added
     case removed(isConsumed: Bool)
     

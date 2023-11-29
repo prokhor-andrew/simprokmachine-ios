@@ -6,7 +6,7 @@
 //
 
 
-public final class Process<Input: Sendable, Output: Sendable>: Sendable {
+public final class Process<Input: Sendable, Output: Sendable>: Sendable, Identifiable {
     
     private let task: Task<Void, Never>
     private let pipe: Channel<Input>
