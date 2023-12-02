@@ -8,7 +8,7 @@
 
 public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable {
     
-    internal let onCreate: @Sendable (String, @escaping (Loggable) -> Void) -> Actor
+    internal let onCreate: @Sendable (String, @escaping @Sendable (Loggable) -> Void) -> Actor
     internal let onChange: @Sendable (isolated Actor, MachineCallback<Output>?) async -> Void
     internal let onProcess: @Sendable (isolated Actor, Input) async -> Void
     
@@ -18,7 +18,7 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable
     public let id: String = .id
         
     public init<Object: Actor>(
-        onCreate: @escaping @Sendable (String, @escaping (Loggable) -> Void) -> Object,
+        onCreate: @escaping @Sendable (String, @escaping @Sendable (Loggable) -> Void) -> Object,
         onChange: @escaping @Sendable (isolated Object, MachineCallback<Output>?) async -> Void,
         onProcess: @escaping @Sendable (isolated Object, Input) async -> Void,
         inputBufferStrategy: MachineBufferStrategy<Input> = .default,
@@ -54,7 +54,7 @@ public extension Machine {
         inputBufferStrategy: MachineBufferStrategy<Input>? = nil,
         outputBufferStrategy: MachineBufferStrategy<Output>? = nil,
         @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void,
-        logger: @escaping (Loggable) -> Void
+        logger: @escaping @Sendable (Loggable) -> Void
     ) -> Process<Input, Output> {
         Process(
             logger: logger,

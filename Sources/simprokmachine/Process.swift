@@ -12,7 +12,7 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable, Identif
     private let pipe: Channel<Input>
     
     internal init(
-        logger: @escaping (Loggable) -> Void,
+        logger: @escaping @Sendable (Loggable) -> Void,
         iBufferStrategy: MachineBufferStrategy<Input>?,
         oBufferStrategy: MachineBufferStrategy<Output>?,
         machine: Machine<Input, Output>,
