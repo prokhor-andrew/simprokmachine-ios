@@ -9,8 +9,8 @@
 public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable {
     
     internal let onCreate: @Sendable (String, @escaping (Loggable) -> Void) -> Actor
-    internal let onChange: @Sendable (isolated Actor, String, MachineCallback<Output>?) async -> Void
-    internal let onProcess: @Sendable (isolated Actor, String, Input) async -> Void
+    internal let onChange: @Sendable (isolated Actor, MachineCallback<Output>?) async -> Void
+    internal let onProcess: @Sendable (isolated Actor, Input) async -> Void
     
     internal let inputBufferStrategy: MachineBufferStrategy<Input>
     internal let outputBufferStrategy: MachineBufferStrategy<Output>
@@ -19,8 +19,8 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable
         
     public init<Object: Actor>(
         onCreate: @escaping @Sendable (String, @escaping (Loggable) -> Void) -> Object,
-        onChange: @escaping @Sendable (isolated Object, String, MachineCallback<Output>?) async -> Void,
-        onProcess: @escaping @Sendable (isolated Object, String, Input) async -> Void,
+        onChange: @escaping @Sendable (isolated Object, MachineCallback<Output>?) async -> Void,
+        onProcess: @escaping @Sendable (isolated Object, Input) async -> Void,
         inputBufferStrategy: MachineBufferStrategy<Input> = .default,
         outputBufferStrategy: MachineBufferStrategy<Output> = .default
     ) {
@@ -28,10 +28,10 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable
         self.outputBufferStrategy = outputBufferStrategy
         self.onCreate = onCreate
         self.onChange = {
-            await onChange($0 as! Object, $1, $2)
+            await onChange($0 as! Object, $1)
         }
         self.onProcess = {
-            await onProcess($0 as! Object, $1, $2)
+            await onProcess($0 as! Object, $1)
         }
     }
 }

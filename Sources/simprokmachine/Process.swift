@@ -31,12 +31,12 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable, Identif
             
             let object = machine.onCreate(machine.id, logger)
             
-            await machine.onChange(object, machine.id, MachineCallback(opipe.yield(_:)))
+            await machine.onChange(object, MachineCallback(opipe.yield(_:)))
             
             await {
                 async let i: Void = {
                     for await input in ipipe {
-                        await machine.onProcess(object, machine.id, input)
+                        await machine.onProcess(object, input)
                     }
                 }()
                 
@@ -50,7 +50,7 @@ public final class Process<Input: Sendable, Output: Sendable>: Sendable, Identif
                 _ = await [i, o]
             }()
             
-            await machine.onChange(object, machine.id, nil)
+            await machine.onChange(object, nil)
         }
     }
     
