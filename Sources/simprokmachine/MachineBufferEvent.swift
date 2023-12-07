@@ -6,7 +6,7 @@
 //
 
 
-public enum MachineBufferEvent: Sendable, Hashable {
+public enum MachineBufferEvent: Sendable, Hashable, CustomStringConvertible, CustomDebugStringConvertible {
     case added
     case removed(isConsumed: Bool)
     
@@ -37,4 +37,13 @@ public enum MachineBufferEvent: Sendable, Hashable {
         case .removed(let isConsumed): isConsumed
         }
     }
+    
+    public var description: String {
+        switch self {
+        case .added: "added"
+        case .removed(let isConsumed): "\(isConsumed ? "consumed" : "cancelled")"
+        }
+    }
+    
+    public var debugDescription: String { description }
 }

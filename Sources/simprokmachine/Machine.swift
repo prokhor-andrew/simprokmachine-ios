@@ -53,8 +53,8 @@ public extension Machine {
     func run(
         inputBufferStrategy: MachineBufferStrategy<Input>? = nil,
         outputBufferStrategy: MachineBufferStrategy<Output>? = nil,
-        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void,
-        logger: @escaping @Sendable (Loggable) -> Void
+        logger: @escaping @Sendable (Loggable) -> Void,
+        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
     ) -> Process<Input, Output> {
         Process(
             logger: logger,

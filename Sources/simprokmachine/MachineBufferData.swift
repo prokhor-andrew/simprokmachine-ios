@@ -32,3 +32,14 @@ extension MachineBufferData: Hashable {
         hasher.combine(id)
     }
 }
+
+extension MachineBufferData: CustomStringConvertible {
+    
+    public var description: String {
+        "id=\(id) _ data: \(data)"
+    }
+}
+
+extension MachineBufferData: CustomDebugStringConvertible {
+    public var debugDescription: String { description }
+}
