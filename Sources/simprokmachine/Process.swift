@@ -7,6 +7,7 @@
 
 
 public typealias Process<Input: Sendable> = (
+    id: String,
     task: Task<Void, Never>,
     send: MachineCallback<Input>
 )

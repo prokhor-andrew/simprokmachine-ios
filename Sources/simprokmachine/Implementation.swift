@@ -47,6 +47,7 @@ internal func _run<Input: Sendable, Output: Sendable>(
     }
     
     return (
+        id: machine.id,
         task: task,
         send: MachineCallback<Input>(ipipe.yield)
     )
