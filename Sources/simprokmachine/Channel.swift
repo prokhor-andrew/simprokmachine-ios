@@ -41,10 +41,6 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
                     return
                 }
                 state.withCriticalRegion { state in
-//                    if Task.isCancelled {
-//                        cont.resume(returning: nil)
-//                        return
-//                    }
                     switch state {
                     case .idle:
                         state = .awaitingForProducer(cur: ChannelConsumer(id: id, cont: cont), rest: [])
@@ -97,10 +93,6 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
                     return
                 }
                 state.withCriticalRegion { state in
-//                    if Task.isCancelled {
-//                        cont.resume(returning: false)
-//                        return
-//                    }
                     switch state {
                     case .idle:
                         handleBuffer(&state, event: .added, currentArray: [MachineBufferData(id: id, data: val, cont: cont)])
@@ -135,8 +127,13 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
     
     private func handleBuffer(_ state: inout ChannelState<T>, event: MachineBufferEvent, currentArray: [MachineBufferData<T>]) {
         let bufferedArray = bufferStrategy.bufferReducer(currentArray, event)
-        let difference = Set(currentArray).symmetricDifference(Set(bufferedArray))
-        state = bufferedArray.isEmpty ? .idle : .awaitingForConsumer(bufferedArray)
+        
+        let withoutDuplicated: [MachineBufferData<T>] = bufferedArray.reduce([]) { partialResult, element in
+            partialResult.contains(element) ? partialResult : partialResult + [element]
+        }
+        
+        let difference = Set(currentArray).symmetricDifference(Set(withoutDuplicated))
+        state = withoutDuplicated.isEmpty ? .idle : .awaitingForConsumer(withoutDuplicated)
         difference.forEach { $0.cont.resume(returning: false) }
     }
 }
