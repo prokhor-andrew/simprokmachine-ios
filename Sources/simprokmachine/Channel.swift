@@ -10,9 +10,11 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
     
     private let state = ManagedCriticalState(ChannelState<T>.idle)
     
+    private let logger: MachineLogger
     private let bufferStrategy: MachineBufferStrategy<T>
     
-    init(bufferStrategy: MachineBufferStrategy<T>) {
+    init(bufferStrategy: MachineBufferStrategy<T>, logger: MachineLogger) {
+        self.logger = logger
         self.bufferStrategy = bufferStrategy
     }
 
@@ -126,7 +128,7 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
     }
     
     private func handleBuffer(_ state: inout ChannelState<T>, event: MachineBufferEvent, currentArray: [MachineBufferData<T>]) {
-        let bufferedArray = bufferStrategy.bufferReducer(currentArray, event)
+        let bufferedArray = bufferStrategy.bufferReducer(currentArray, event, logger)
         
         let withoutDuplicated: [MachineBufferData<T>] = bufferedArray.reduce([]) { partialResult, element in
             partialResult.contains(element) ? partialResult : partialResult + [element]
@@ -144,8 +146,8 @@ final class Channel<T: Sendable>: Sendable, AsyncSequence {
     
     private let iterator: ChannelIterator<T>
     
-    init(bufferStrategy: MachineBufferStrategy<T>) {
-        self.iterator = ChannelIterator<T>(bufferStrategy: bufferStrategy)
+    init(bufferStrategy: MachineBufferStrategy<T>, logger: MachineLogger) {
+        self.iterator = ChannelIterator<T>(bufferStrategy: bufferStrategy, logger: logger)
     }
     
     func makeAsyncIterator() -> ChannelIterator<T> { iterator }

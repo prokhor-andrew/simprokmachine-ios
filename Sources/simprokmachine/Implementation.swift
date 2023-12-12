@@ -14,8 +14,8 @@ internal func _run<Input: Sendable, Output: Sendable>(
     logger: MachineLogger,
     @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
 ) -> Process<Input> {
-    let ipipe = Channel<Input>(bufferStrategy: inputBufferStrategy ?? machine.inputBufferStrategy)
-    let opipe = Channel<Output>(bufferStrategy: outputBufferStrategy ?? machine.outputBufferStrategy)
+    let ipipe = Channel<Input>(bufferStrategy: inputBufferStrategy ?? machine.inputBufferStrategy, logger: logger)
+    let opipe = Channel<Output>(bufferStrategy: outputBufferStrategy ?? machine.outputBufferStrategy, logger: logger)
     
     let task = Task(priority: nil) {
         if Task.isCancelled {
