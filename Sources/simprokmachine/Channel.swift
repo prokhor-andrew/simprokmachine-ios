@@ -41,6 +41,10 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
                     return
                 }
                 state.withCriticalRegion { state in
+//                    if Task.isCancelled {
+//                        cont.resume(returning: nil)
+//                        return
+//                    }
                     switch state {
                     case .idle:
                         state = .awaitingForProducer(cur: ChannelConsumer(id: id, cont: cont), rest: [])
@@ -93,6 +97,10 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
                     return
                 }
                 state.withCriticalRegion { state in
+//                    if Task.isCancelled {
+//                        cont.resume(returning: false)
+//                        return
+//                    }
                     switch state {
                     case .idle:
                         handleBuffer(&state, event: .added, currentArray: [MachineBufferData(id: id, data: val, cont: cont)])
@@ -111,7 +119,15 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
                 case .idle, .awaitingForProducer:
                     break // do nothing, as there is no continuation to be resumed
                 case .awaitingForConsumer(let array):
-                    handleBuffer(&state, event: .removed(isConsumed: false), currentArray: array.filter { $0.id != id })
+                    let currentArray = array.filter { data in
+                        if data.id != id {
+                            return true
+                        } else {
+                            data.cont.resume(returning: false)
+                            return false
+                        }
+                    }
+                    handleBuffer(&state, event: .removed(isConsumed: false), currentArray: currentArray)
                 }
             }
         }

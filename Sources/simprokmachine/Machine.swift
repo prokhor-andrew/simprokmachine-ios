@@ -55,12 +55,12 @@ public extension Machine {
         outputBufferStrategy: MachineBufferStrategy<Output>? = nil,
         logger: @escaping @Sendable (Loggable) -> Void,
         @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
-    ) -> Process<Input, Output> {
-        Process(
-            logger: logger,
-            iBufferStrategy: inputBufferStrategy,
-            oBufferStrategy: outputBufferStrategy,
+    ) -> Process<Input> {
+        _run(
             machine: self,
+            inputBufferStrategy: inputBufferStrategy,
+            outputBufferStrategy: outputBufferStrategy,
+            logger: logger,
             onConsume: onConsume
         )
     }
