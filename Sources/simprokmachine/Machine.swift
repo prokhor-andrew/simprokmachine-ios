@@ -53,15 +53,25 @@ public extension Machine {
     func run(
         inputBufferStrategy: MachineBufferStrategy<Input>? = nil,
         outputBufferStrategy: MachineBufferStrategy<Output>? = nil,
-        logger: MachineLogger = .default,
-        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
+        logger: MachineLogger,
+        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output, MachineLogger) async -> Void
     ) -> Process<Input> {
         _run(
             machine: self,
             inputBufferStrategy: inputBufferStrategy,
             outputBufferStrategy: outputBufferStrategy,
             logger: logger,
-            onConsume: onConsume
+            onConsume: { await onConsume($0, logger) }
         )
+    }
+    
+    func run(
+        inputBufferStrategy: MachineBufferStrategy<Input>? = nil,
+        outputBufferStrategy: MachineBufferStrategy<Output>? = nil,
+        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
+    ) -> Process<Input> {
+        run(inputBufferStrategy: inputBufferStrategy, outputBufferStrategy: outputBufferStrategy, logger: .default) { output, _ in
+            await onConsume(output)
+        }
     }
 }

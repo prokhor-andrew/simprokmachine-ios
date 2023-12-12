@@ -17,4 +17,8 @@ public struct MachineLogger: Sendable {
     public init(log: @escaping @Sendable (Loggable) -> Void) {
         self.log = log
     }
+    
+    public func callAsFunction(_ loggable: Loggable) {
+        log(loggable)
+    }
 }

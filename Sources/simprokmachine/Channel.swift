@@ -10,12 +10,14 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
     
     private let state = ManagedCriticalState(ChannelState<T>.idle)
     
+    private let machineId: String
     private let logger: MachineLogger
     private let bufferStrategy: MachineBufferStrategy<T>
     
-    init(bufferStrategy: MachineBufferStrategy<T>, logger: MachineLogger) {
+    init(bufferStrategy: MachineBufferStrategy<T>, logger: MachineLogger, machineId: String) {
         self.logger = logger
         self.bufferStrategy = bufferStrategy
+        self.machineId = machineId
     }
 
     deinit {
@@ -128,7 +130,7 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
     }
     
     private func handleBuffer(_ state: inout ChannelState<T>, event: MachineBufferEvent, currentArray: [MachineBufferData<T>]) {
-        let bufferedArray = bufferStrategy.bufferReducer(currentArray, event, logger)
+        let bufferedArray = bufferStrategy.bufferReducer(currentArray, event, logger, machineId)
         
         let withoutDuplicated: [MachineBufferData<T>] = bufferedArray.reduce([]) { partialResult, element in
             partialResult.contains(element) ? partialResult : partialResult + [element]
@@ -146,8 +148,8 @@ final class Channel<T: Sendable>: Sendable, AsyncSequence {
     
     private let iterator: ChannelIterator<T>
     
-    init(bufferStrategy: MachineBufferStrategy<T>, logger: MachineLogger) {
-        self.iterator = ChannelIterator<T>(bufferStrategy: bufferStrategy, logger: logger)
+    init(bufferStrategy: MachineBufferStrategy<T>, logger: MachineLogger, machineId: String) {
+        self.iterator = ChannelIterator<T>(bufferStrategy: bufferStrategy, logger: logger, machineId: machineId)
     }
     
     func makeAsyncIterator() -> ChannelIterator<T> { iterator }
