@@ -11,7 +11,7 @@ internal func _run<Input: Sendable, Output: Sendable>(
     machine: Machine<Input, Output>,
     inputBufferStrategy: MachineBufferStrategy<Input>?,
     outputBufferStrategy: MachineBufferStrategy<Output>?,
-    logger: @escaping @Sendable (Loggable) -> Void,
+    logger: MachineLogger,
     @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
 ) -> Process<Input> {
     let ipipe = Channel<Input>(bufferStrategy: inputBufferStrategy ?? machine.inputBufferStrategy)
