@@ -34,13 +34,18 @@ internal func _run<Input: Sendable, Output: Sendable>(
         await machine.onChange(object, MachineCallback(opipe.yield(_:)))
         
         await withTaskGroup(of: Void.self) { group in
-            group.addTask {
+            let isInputCancelled = group.addTaskUnlessCancelled {
                 for await input in ipipe {
                     await machine.onProcess(object, input)
                 }
             }
             
-            group.addTask {
+            if isInputCancelled {
+                group.cancelAll()
+                return
+            }
+            
+            let isOutputCancelled = group.addTaskUnlessCancelled {
                 for await output in opipe {
                     let isDone = await onConsume(
                         output,
@@ -54,6 +59,12 @@ internal func _run<Input: Sendable, Output: Sendable>(
                 }
             }
             
+            
+            if isOutputCancelled {
+                group.cancelAll()
+                return
+            }
+            
             await group.next()
             group.cancelAll()
         }
@@ -62,7 +73,7 @@ internal func _run<Input: Sendable, Output: Sendable>(
         await machine.onChange(object, nil)
     }
     
-    return (
+    return Process(
         id: machine.id,
         cancel: { task.cancel() },
         send: icallback
