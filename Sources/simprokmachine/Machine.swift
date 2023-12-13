@@ -92,4 +92,47 @@ public extension Machine {
             await onConsume(id, send, output)
         }
     }
+    
+    @discardableResult
+    func run(
+        inputBufferStrategy: MachineBufferStrategy<Input>? = nil,
+        outputBufferStrategy: MachineBufferStrategy<Output>? = nil,
+        logger: MachineLogger,
+        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (
+            String,
+            MachineCallback<Input>,
+            Output,
+            MachineLogger
+        ) async -> Void
+    ) -> Process<Input> {
+        run(
+            inputBufferStrategy: inputBufferStrategy, 
+            outputBufferStrategy: outputBufferStrategy,
+            logger: logger,
+            onConsume: { id, send, output, logger in
+                await onConsume(id, send, output, logger)
+                return false
+            }
+        )
+    }
+    
+    
+    @discardableResult
+    func run(
+        inputBufferStrategy: MachineBufferStrategy<Input>? = nil,
+        outputBufferStrategy: MachineBufferStrategy<Output>? = nil,
+        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (
+            String,
+            MachineCallback<Input>,
+            Output
+        ) async -> Void
+    ) -> Process<Input> {
+        run(
+            inputBufferStrategy: inputBufferStrategy,
+            outputBufferStrategy: outputBufferStrategy,
+            logger: .default
+        ) { id, send, output, _ in
+            await onConsume(id, send, output)
+        }
+    }
 }
