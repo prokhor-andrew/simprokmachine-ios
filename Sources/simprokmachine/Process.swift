@@ -8,6 +8,6 @@
 
 public typealias Process<Input: Sendable> = (
     id: String,
-    task: Task<Void, Never>,
+    cancel: () -> Void,
     send: MachineCallback<Input>
 )

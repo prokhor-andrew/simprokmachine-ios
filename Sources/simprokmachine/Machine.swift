@@ -50,28 +50,46 @@ extension Machine: Hashable {
 
 public extension Machine {
     
+    @discardableResult
     func run(
         inputBufferStrategy: MachineBufferStrategy<Input>? = nil,
         outputBufferStrategy: MachineBufferStrategy<Output>? = nil,
         logger: MachineLogger,
-        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output, MachineLogger) async -> Void
+        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (
+            String,
+            MachineCallback<Input>,
+            Output,
+            MachineLogger
+        ) async -> Bool
     ) -> Process<Input> {
         _run(
             machine: self,
             inputBufferStrategy: inputBufferStrategy,
             outputBufferStrategy: outputBufferStrategy,
             logger: logger,
-            onConsume: { await onConsume($0, logger) }
+            onConsume: { output, send, id, logger in
+                await onConsume(id, send, output, logger)
+            }
         )
     }
     
+    
+    @discardableResult
     func run(
         inputBufferStrategy: MachineBufferStrategy<Input>? = nil,
         outputBufferStrategy: MachineBufferStrategy<Output>? = nil,
-        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
+        @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (
+            String,
+            MachineCallback<Input>,
+            Output
+        ) async -> Bool
     ) -> Process<Input> {
-        run(inputBufferStrategy: inputBufferStrategy, outputBufferStrategy: outputBufferStrategy, logger: .default) { output, _ in
-            await onConsume(output)
+        run(
+            inputBufferStrategy: inputBufferStrategy,
+            outputBufferStrategy: outputBufferStrategy,
+            logger: .default
+        ) { id, send, output, _ in
+            await onConsume(id, send, output)
         }
     }
 }
