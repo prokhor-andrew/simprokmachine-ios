@@ -40,7 +40,7 @@ internal func _run<Input: Sendable, Output: Sendable>(
                 }
             }
             
-            if isInputCancelled {
+            if !isInputCancelled {
                 group.cancelAll()
                 return
             }
@@ -60,7 +60,7 @@ internal func _run<Input: Sendable, Output: Sendable>(
             }
             
             
-            if isOutputCancelled {
+            if !isOutputCancelled {
                 group.cancelAll()
                 return
             }
