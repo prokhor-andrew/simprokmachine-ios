@@ -14,8 +14,8 @@ internal func _run<Input: Sendable, Output: Sendable>(
     logger: MachineLogger,
     @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (
         _ output: Output,
-        _ send: MachineCallback<Input>,
         _ machineId: String,
+        _ send: MachineCallback<Input>,
         _ logger: MachineLogger
     ) async -> Bool
 ) -> Process<Input> {
@@ -49,8 +49,8 @@ internal func _run<Input: Sendable, Output: Sendable>(
                 for await output in opipe {
                     let isDone = await onConsume(
                         output,
-                        icallback,
                         machine.id,
+                        icallback,
                         logger
                     )
                     if isDone {
