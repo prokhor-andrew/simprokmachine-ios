@@ -8,9 +8,10 @@
 
 public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable {
     
-    internal let onCreate: @Sendable (String, MachineLogger) -> Actor
-    internal let onChange: @Sendable (isolated Actor, MachineCallback<Output>?) async -> Void
-    internal let onProcess: @Sendable (isolated Actor, Input) async -> Void
+    internal let onCreate: @Sendable (String, MachineLogger) -> (
+        onChange: @Sendable (MachineCallback<Output>?) async -> Void,
+        onProcess: @Sendable (Input) async -> Void
+    )
     
     internal let inputBufferStrategy: MachineBufferStrategy<Input>
     internal let outputBufferStrategy: MachineBufferStrategy<Output>
@@ -19,19 +20,24 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable
         
     public init<Object: Actor>(
         onCreate: @escaping @Sendable (String, MachineLogger) -> Object,
-        onChange: @escaping @Sendable (isolated Object, MachineCallback<Output>?) async -> Void,
-        onProcess: @escaping @Sendable (isolated Object, Input) async -> Void,
+        onChange: @escaping @Sendable (isolated Object, MachineCallback<Output>?) -> Void,
+        onProcess: @escaping @Sendable (isolated Object, Input) -> Void,
         inputBufferStrategy: MachineBufferStrategy<Input> = .default,
         outputBufferStrategy: MachineBufferStrategy<Output> = .default
     ) {
+        
         self.inputBufferStrategy = inputBufferStrategy
         self.outputBufferStrategy = outputBufferStrategy
-        self.onCreate = onCreate
-        self.onChange = {
-            await onChange($0 as! Object, $1)
-        }
-        self.onProcess = {
-            await onProcess($0 as! Object, $1)
+        self.onCreate = { id, logger in
+            let object = onCreate(id, logger)
+            return (
+                onChange: { callback in
+                    await onChange(object, callback)
+                },
+                onProcess: { input in
+                    await onProcess(object, input)
+                }
+            )
         }
     }
 }

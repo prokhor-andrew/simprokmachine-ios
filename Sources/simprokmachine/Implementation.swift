@@ -29,14 +29,14 @@ internal func _run<Input: Sendable, Output: Sendable>(
             return
         }
         
-        let object = machine.onCreate(machine.id, logger)
+        let (onChange, onProcess) = machine.onCreate(machine.id, logger)
         
-        await machine.onChange(object, MachineCallback(opipe.yield(_:)))
+        await onChange(MachineCallback(opipe.yield(_:)))
         
         await withTaskGroup(of: Void.self) { group in
             let isInputCancelled = group.addTaskUnlessCancelled {
                 for await input in ipipe {
-                    await machine.onProcess(object, input)
+                    await onProcess(input)
                 }
             }
             
@@ -70,7 +70,7 @@ internal func _run<Input: Sendable, Output: Sendable>(
         }
         
         
-        await machine.onChange(object, nil)
+        await onChange(nil)
     }
     
     return Process(
