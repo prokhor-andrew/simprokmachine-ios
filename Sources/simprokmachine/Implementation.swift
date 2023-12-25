@@ -15,9 +15,8 @@ internal func _run<Input: Sendable, Output: Sendable>(
     @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (
         _ output: Output,
         _ machineId: String,
-        _ send: MachineCallback<Input>,
         _ logger: MachineLogger
-    ) async -> Bool
+    ) -> Void
 ) -> Process<Input> {
     let ipipe = Channel<Input>(bufferStrategy: inputBufferStrategy ?? machine.inputBufferStrategy, logger: logger, machineId: machine.id)
     let opipe = Channel<Output>(bufferStrategy: outputBufferStrategy ?? machine.outputBufferStrategy, logger: logger, machineId: machine.id)
@@ -47,18 +46,9 @@ internal func _run<Input: Sendable, Output: Sendable>(
             
             let isOutputCancelled = group.addTaskUnlessCancelled {
                 for await output in opipe {
-                    let isDone = await onConsume(
-                        output,
-                        machine.id,
-                        icallback,
-                        logger
-                    )
-                    if isDone {
-                        break
-                    }
+                    onConsume(output, machine.id, logger)
                 }
             }
-            
             
             if !isOutputCancelled {
                 group.cancelAll()
