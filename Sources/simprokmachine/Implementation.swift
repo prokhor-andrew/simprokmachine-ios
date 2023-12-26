@@ -12,11 +12,7 @@ internal func _run<Input: Sendable, Output: Sendable>(
     inputBufferStrategy: MachineBufferStrategy<Input>?,
     outputBufferStrategy: MachineBufferStrategy<Output>?,
     logger: MachineLogger,
-    @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (
-        _ output: Output,
-        _ machineId: String,
-        _ logger: MachineLogger
-    ) -> Void
+    @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
 ) -> Process<Input> {
     let ipipe = Channel<Input>(bufferStrategy: inputBufferStrategy ?? machine.inputBufferStrategy, logger: logger, machineId: machine.id)
     let opipe = Channel<Output>(bufferStrategy: outputBufferStrategy ?? machine.outputBufferStrategy, logger: logger, machineId: machine.id)
@@ -46,7 +42,7 @@ internal func _run<Input: Sendable, Output: Sendable>(
             
             let isOutputCancelled = group.addTaskUnlessCancelled {
                 for await output in opipe {
-                    onConsume(output, machine.id, logger)
+                    await onConsume(output)
                 }
             }
             

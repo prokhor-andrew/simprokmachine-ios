@@ -36,7 +36,7 @@ extension MachineBufferData: Hashable {
 extension MachineBufferData: CustomStringConvertible {
     
     public var description: String {
-        "id=\(id) _ data: \(data)"
+        "MachineBufferData<\(T.self)> id=\(id) _ data=\(data)"
     }
 }
 

@@ -40,8 +40,8 @@ public enum MachineBufferEvent: Sendable, Hashable, CustomStringConvertible, Cus
     
     public var description: String {
         switch self {
-        case .added: "added"
-        case .removed(let isConsumed): "\(isConsumed ? "consumed" : "cancelled")"
+        case .added: "MachineBufferEvent added"
+        case .removed(let isConsumed): "MachineBufferEvent \(isConsumed ? "consumed" : "cancelled")"
         }
     }
     
