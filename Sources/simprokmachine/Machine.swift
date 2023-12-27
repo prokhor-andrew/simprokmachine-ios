@@ -40,16 +40,18 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable
         inputBufferStrategy: MachineBufferStrategy<Input> = .default,
         outputBufferStrategy: MachineBufferStrategy<Output> = .default
     ) {
-        self.id = .id
-        self.inputBufferStrategy = inputBufferStrategy
-        self.outputBufferStrategy = outputBufferStrategy
-        self.onCreate = { id, logger in
-            let object = onCreate(id, logger)
-            return (
-                onChange: { await onChange(object, $0) },
-                onProcess: { await onProcess(object, $0) }
-            )
-        }
+        self.init(
+            id: .id,
+            inputBufferStrategy: inputBufferStrategy,
+            outputBufferStrategy: outputBufferStrategy,
+            onCreate: { id, logger in
+                let object = onCreate(id, logger)
+                return (
+                    onChange: { await onChange(object, $0) },
+                    onProcess: { await onProcess(object, $0) }
+                )
+            }
+        )
     }
     
     public func run(
