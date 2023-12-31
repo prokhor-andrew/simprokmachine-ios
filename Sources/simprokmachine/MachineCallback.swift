@@ -6,7 +6,6 @@
 //
 
 
-
 public struct MachineCallback<T: Sendable>: Sendable {
     
     public let function: @Sendable (T) async -> Bool

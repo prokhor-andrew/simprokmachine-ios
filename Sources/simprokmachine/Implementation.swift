@@ -7,15 +7,15 @@
 
 
 
-internal func _run<Input: Sendable, Output: Sendable>(
-    machine: Machine<Input, Output>,
-    inputBufferStrategy: MachineBufferStrategy<Input>?,
-    outputBufferStrategy: MachineBufferStrategy<Output>?,
-    logger: MachineLogger,
+internal func _run<Input: Sendable, Output: Sendable, Loggable: Sendable>(
+    machine: Machine<Input, Output, Loggable>,
+    inputBufferStrategy: MachineBufferStrategy<Input, Loggable>?,
+    outputBufferStrategy: MachineBufferStrategy<Output, Loggable>?,
+    logger: MachineLogger<Loggable>,
     @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
 ) -> Process<Input> {
-    let ipipe = Channel<Input>(bufferStrategy: inputBufferStrategy ?? machine.inputBufferStrategy, logger: logger, machineId: machine.id)
-    let opipe = Channel<Output>(bufferStrategy: outputBufferStrategy ?? machine.outputBufferStrategy, logger: logger, machineId: machine.id)
+    let ipipe = Channel<Input, Loggable>(bufferStrategy: inputBufferStrategy ?? machine.inputBufferStrategy, logger: logger, machineId: machine.id)
+    let opipe = Channel<Output, Loggable>(bufferStrategy: outputBufferStrategy ?? machine.outputBufferStrategy, logger: logger, machineId: machine.id)
     
     let icallback = MachineCallback(ipipe.yield(_:))
     

@@ -6,23 +6,23 @@
 //  Copyright (c) 2020 simprok. All rights reserved.
 
 
-public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable {
+public struct Machine<Input: Sendable, Output: Sendable, Loggable: Sendable>: Sendable, Identifiable {
     
-    public let onCreate: @Sendable (String, MachineLogger) -> (
+    public let onCreate: @Sendable (String, MachineLogger<Loggable>) -> (
         onChange: @Sendable (MachineCallback<Output>?) async -> Void,
         onProcess: @Sendable (Input) async -> Void
     )
     
-    public let inputBufferStrategy: MachineBufferStrategy<Input>
-    public let outputBufferStrategy: MachineBufferStrategy<Output>
+    public let inputBufferStrategy: MachineBufferStrategy<Input, Loggable>
+    public let outputBufferStrategy: MachineBufferStrategy<Output, Loggable>
     
     public let id: String
     
     public init(
         id: String,
-        inputBufferStrategy: MachineBufferStrategy<Input>,
-        outputBufferStrategy: MachineBufferStrategy<Output>,
-        onCreate: @Sendable @escaping (String, MachineLogger) -> (
+        inputBufferStrategy: MachineBufferStrategy<Input, Loggable>,
+        outputBufferStrategy: MachineBufferStrategy<Output, Loggable>,
+        onCreate: @Sendable @escaping (String, MachineLogger<Loggable>) -> (
             onChange: @Sendable (MachineCallback<Output>?) async -> Void,
             onProcess: @Sendable (Input) async -> Void
         )
@@ -34,11 +34,11 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable
     }
     
     public init<Object: Actor>(
-        onCreate: @escaping @Sendable (String, MachineLogger) -> Object,
+        onCreate: @escaping @Sendable (String, MachineLogger<Loggable>) -> Object,
         onChange: @escaping @Sendable (isolated Object, MachineCallback<Output>?) -> Void,
         onProcess: @escaping @Sendable (isolated Object, Input) async -> Void,
-        inputBufferStrategy: MachineBufferStrategy<Input> = .default,
-        outputBufferStrategy: MachineBufferStrategy<Output> = .default
+        inputBufferStrategy: MachineBufferStrategy<Input, Loggable> = .default,
+        outputBufferStrategy: MachineBufferStrategy<Output, Loggable> = .default
     ) {
         self.init(
             id: .id,
@@ -55,9 +55,9 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable
     }
     
     public func run(
-        inputBufferStrategy: MachineBufferStrategy<Input>? = nil,
-        outputBufferStrategy: MachineBufferStrategy<Output>? = nil,
-        logger: MachineLogger,
+        inputBufferStrategy: MachineBufferStrategy<Input, Loggable>? = nil,
+        outputBufferStrategy: MachineBufferStrategy<Output, Loggable>? = nil,
+        logger: MachineLogger<Loggable>,
         @_inheritActorContext @_implicitSelfCapture onConsume: @escaping @Sendable (Output) async -> Void
     ) -> Process<Input> {
         _run(
@@ -71,7 +71,7 @@ public struct Machine<Input: Sendable, Output: Sendable>: Sendable, Identifiable
 }
 
 extension Machine: Equatable {
-    public static func == (lhs: Machine<Input, Output>, rhs: Machine<Input, Output>) -> Bool {
+    public static func == (lhs: Machine<Input, Output, Loggable>, rhs: Machine<Input, Output, Loggable>) -> Bool {
         lhs.id == rhs.id
     }
 }
@@ -86,7 +86,7 @@ extension Machine: Hashable {
 extension Machine: CustomStringConvertible {
     
     public var description: String {
-        "Machine<\(Input.self), \(Output.self)> id=\(id)"
+        "Machine<\(Input.self), \(Output.self), \(Loggable.self)> id=\(id)"
     }
 }
 

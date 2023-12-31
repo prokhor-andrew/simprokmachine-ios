@@ -5,16 +5,16 @@
 //  Created by Andriy Prokhorenko on 02.07.2023.
 //
 
-final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
+final class ChannelIterator<T: Sendable, Loggable: Sendable>: Sendable, AsyncIteratorProtocol {
     typealias Element = T
     
     private let state = ManagedCriticalState(ChannelState<T>.idle)
     
     private let machineId: String
-    private let logger: MachineLogger
-    private let bufferStrategy: MachineBufferStrategy<T>
+    private let logger: MachineLogger<Loggable>
+    private let bufferStrategy: MachineBufferStrategy<T, Loggable>
     
-    init(bufferStrategy: MachineBufferStrategy<T>, logger: MachineLogger, machineId: String) {
+    init(bufferStrategy: MachineBufferStrategy<T, Loggable>, logger: MachineLogger<Loggable>, machineId: String) {
         self.logger = logger
         self.bufferStrategy = bufferStrategy
         self.machineId = machineId
@@ -142,17 +142,17 @@ final class ChannelIterator<T: Sendable>: Sendable, AsyncIteratorProtocol {
     }
 }
 
-final class Channel<T: Sendable>: Sendable, AsyncSequence {
-    typealias AsyncIterator = ChannelIterator<T>
+final class Channel<T: Sendable, Loggable: Sendable>: Sendable, AsyncSequence {
+    typealias AsyncIterator = ChannelIterator<T, Loggable>
     typealias Element = T
     
-    private let iterator: ChannelIterator<T>
+    private let iterator: ChannelIterator<T, Loggable>
     
-    init(bufferStrategy: MachineBufferStrategy<T>, logger: MachineLogger, machineId: String) {
-        self.iterator = ChannelIterator<T>(bufferStrategy: bufferStrategy, logger: logger, machineId: machineId)
+    init(bufferStrategy: MachineBufferStrategy<T, Loggable>, logger: MachineLogger<Loggable>, machineId: String) {
+        self.iterator = ChannelIterator<T, Loggable>(bufferStrategy: bufferStrategy, logger: logger, machineId: machineId)
     }
     
-    func makeAsyncIterator() -> ChannelIterator<T> { iterator }
+    func makeAsyncIterator() -> ChannelIterator<T, Loggable> { iterator }
     
     @Sendable
     func yield(_ val: T) async -> Bool {

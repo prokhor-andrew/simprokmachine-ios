@@ -6,7 +6,7 @@
 //
 
 
-public struct MachineLogger: Sendable {
+public struct MachineLogger<Loggable: Sendable>: Sendable {
     
     public static var `default`: MachineLogger {
         MachineLogger { _ in }
